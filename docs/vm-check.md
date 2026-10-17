@@ -48,7 +48,42 @@ sudo systemctl enable --now docker
 
 ## 4. Python libraries on s390x (task F0-BE-02)
 
-_Filled in by F0-BE-02._
+**Result: the whole stack installs and works on s390x. No plan B is needed** (LightGBM
+and SHAP included). Functional evidence, not just imports:
+[`docs/screenshots/vm_python_stack.txt`](screenshots/vm_python_stack.txt)
+(`tools/vm_check/stack_check.py`: fits logistic regression, Random Forest and LightGBM,
+checks SHAP additivity, Fernet round trip and a FastAPI request on big-endian s390x).
+
+PyPI has **no s390x wheels** for the scientific packages: pip compiles them from
+source. Times on the VM (3 vCPUs, z17), Python 3.12 venv `~/venv-holter`:
+
+| Package | Version | Result | Time | Notes |
+|---|---|---|---|---|
+| numpy | 2.5.4 | OK, source build | 140 s | Built before OpenBLAS was installed, so it uses its internal fallback (`BLAS: auto`) |
+| pandas | 3.0.6 | OK, source build | 176 s | |
+| scikit-learn | 1.9.1 | **failed**, then OK | — | 1st try: scipy (build dependency) needs a Fortran compiler: `ERROR: Unknown compiler(s): [['gfortran'], ...]`. Fixed by `apt install gfortran libopenblas-dev liblapack-dev pkg-config` |
+| scipy | 1.18.1 | OK, source build | (inside lightgbm) | Needs gfortran + OpenBLAS |
+| lightgbm | 4.7.0 | OK, source build | 607 s | Most of the time is scipy; LightGBM itself builds with cmake |
+| shap | 0.54.1 | OK, source build | 128 s | No numba/llvmlite dependency in this version |
+| cryptography | 50.0.2 | **failed**, then OK | 64 s | 1st try: `openssl-sys ... Could not find directory of OpenSSL installation`. Fixed by `apt install libssl-dev pkg-config`; Rust is fetched automatically by the build backend. Links the system OpenSSL 3.0.13 (CPACF-accelerated AES/SHA) |
+| fastapi | 0.143.3 | OK, pure Python | 3 s | |
+| uvicorn[standard] | 0.54.0 | OK | 78 s | `uvloop`, `httptools`, `watchfiles` compiled |
+| pydantic | 2.14.1 | OK | — | `pydantic-core` has an s390x wheel |
+
+Build dependencies needed on the host (and in any Docker build stage):
+
+```bash
+sudo apt-get install -y build-essential cmake gfortran libopenblas-dev liblapack-dev \
+    pkg-config libssl-dev python3-dev
+```
+
+Implications for the Docker images (F0-BE-03/04):
+- Building from source in every `docker build` costs ~20 minutes. Use a **multi-stage
+  build**: a builder stage with the packages above runs `pip wheel` once (cached by
+  Docker), the runtime stage installs the wheels plus only `libopenblas0`/`libgomp1`.
+- Install OpenBLAS **before** numpy in the builder so numpy links an optimised BLAS
+  (OpenBLAS has kernels for the z vector facility).
+- Reproduce exact versions with the pins above (`ml/requirements.txt`).
 
 ## 5. Inbound ports (task F0-BE-05)
 

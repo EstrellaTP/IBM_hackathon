@@ -1,0 +1,34 @@
+/home/linux1/venv-holter/lib/python3.12/site-packages/shap/explainers/_tree.py:578: UserWarning: LightGBM binary classifier with TreeExplainer shap values output has changed to a list of ndarray
+  warnings.warn(
+/home/linux1/venv-holter/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+machine=s390x byteorder=big python=3.12.3
+  numpy==2.5.4
+  pandas==3.0.6
+  scipy==1.18.1
+  scikit-learn==1.9.1
+  lightgbm==4.7.0
+  shap==0.54.1
+  fastapi==0.143.3
+  uvicorn==0.54.0
+  pydantic==2.14.1
+  cryptography==50.0.2
+  httpx==0.28.1
+numpy BLAS: auto
+fit LogisticRegression                         0.020 s
+fit RandomForest (100 trees)                   0.155 s
+fit LightGBM (100 rounds)                      0.531 s
+  AUC logistic   0.9974
+  AUC forest     0.9946
+  AUC lightgbm   0.9936
+SHAP TreeExplainer on LightGBM (100 rows)      0.086 s
+  SHAP additivity max error 3.91e-14
+Fernet encrypt+decrypt 12 kB x 1000            0.088 s
+  cryptography backend: OpenSSL 3.0.13 30 Jan 2024
+FastAPI TestClient GET /health                 0.014 s
+CHECK auc_logistic       PASS
+CHECK auc_forest         PASS
+CHECK auc_lightgbm       PASS
+CHECK shap_additivity    PASS
+CHECK fernet_roundtrip   PASS
+CHECK fastapi            PASS

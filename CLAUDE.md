@@ -95,10 +95,12 @@ Si una tarea necesita algo que tu carril no tiene (por ejemplo, `[APP]` necesita
 2. **Los contratos de datos (sección 9) antes que los servicios.** Mientras falte una pieza, usa datos falsos que cumplan el contrato.
 3. **Todo el código se escribe durante el evento.** Nada de proyectos previos del equipo ni código comercial como núcleo. Librerías open-source, APIs públicas y herramientas de IBM sí, cada una apuntada en `ATTRIBUTIONS.md` con enlace.
 4. **Nunca subas datos de salud, datasets, claves ni `.env`.** Ni siquiera muestras "pequeñas" de datasets con licencia restringida.
-5. Si una decisión afecta a la arquitectura o al relato del pitch, propón y pide confirmación a `[HUM]` en `HANDOFF.md` antes de implementarla. Mientras tanto, sigue con otra tarea.
-6. Al terminar cada tarea, indica qué captura o log guardar como prueba para el jurado (sección 13).
-7. Idioma: **todo el código y todo lo que lo rodea va en inglés** (sección 1.7): identificadores, comentarios, docstrings, logs, mensajes de error, tests, commits, ramas, UI, README y documentación técnica. `CLAUDE.md`, `TASKS.md`, `HANDOFF.md` y `DECISIONS.md` (coordinación interna del equipo) siguen en español.
-8. **Los estándares de código de la sección 1.7 son obligatorios.** Código que no los cumple no se integra.
+5. **Autonomía de `[CC]`:** tiene permiso del equipo para hacer lo que haga falta dentro de este repo y de la VM (instalar, configurar, crear y borrar ficheros del proyecto, reiniciar contenedores, reorganizar código) **sin pedir confirmación a una persona**. Si una decisión afecta a la arquitectura o al relato del pitch, la toma con su mejor criterio, la apunta en `DECISIONS.md` y abre un issue `para-app` para que `[APP]` la revise. Los únicos límites son las demás reglas de esta lista y los compromisos del abstract (§3 y §5.5).
+6. **Dudas e investigación → `[APP]`.** Cualquier duda (técnica, de datos, de un paquete que no instala en s390x, de cómo interpretar un requisito) o cualquier cosa que haya que investigar se pregunta con un issue `para-app`, con el contexto necesario: qué intentabas, qué ha pasado (error completo), qué has probado. `[APP]` lo resuelve o lo investiga en su siguiente revisión y contesta en el issue. **Mientras tanto, `[CC]` no espera:** sigue con otra tarea.
+7. **Commits frecuentes y documentación detallada.** Un commit por cada paso que funcione, no uno gordo al final. Cuerpo del commit con qué cambia y por qué. Al terminar cada tarea, entrada en `HANDOFF.md` con detalle suficiente para que otro agente continúe sin preguntar: qué se hizo, comandos exactos usados, resultados (números reales), problemas encontrados y cómo se resolvieron. Lo que se descubra de la VM (versiones, paquetes que fallan y su solución) va además a `docs/vm-check.md`.
+8. Al terminar cada tarea, indica qué captura o log guardar como prueba para el jurado (sección 13).
+9. Idioma: **todo el código y todo lo que lo rodea va en inglés** (sección 1.7): identificadores, comentarios, docstrings, logs, mensajes de error, tests, commits, ramas, UI, README y documentación técnica. `CLAUDE.md`, `TASKS.md`, `HANDOFF.md` y `DECISIONS.md` (coordinación interna del equipo) siguen en español.
+10. **Los estándares de código de la sección 1.7 son obligatorios.** Código que no los cumple no se integra.
 
 ### 1.7 Estándares de código (obligatorio)
 

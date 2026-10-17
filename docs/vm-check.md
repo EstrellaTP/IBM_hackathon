@@ -52,7 +52,36 @@ _Filled in by F0-BE-02._
 
 ## 5. Inbound ports (task F0-BE-05)
 
-_Filled in by F0-BE-05._
+**Result: inbound ports can be opened; the only firewall is `iptables` inside the guest.**
+No plan B (SSH tunnel) is needed.
+
+Test (2026-10-18), from the laptop on a home ISP connection, i.e. from the public
+internet outside Marist's network:
+
+| Step | 443 | 8080 | 8443 | 9443 (Docker `-p`) | 5555 (nothing) |
+|---|---|---|---|---|---|
+| `python3 -m http.server` on the host, default guest firewall | timeout | timeout | timeout | | |
+| Same, after `iptables -I INPUT -p tcp --dport <port> ... -j ACCEPT` | **200** | **200** | **200** | | timeout |
+| `docker run -p 9443:80 nginx:alpine`, **no** INPUT rule | | | | **200** | |
+
+Findings:
+- The guest rule set ends in `REJECT --reject-with icmp-host-prohibited`; from outside it
+  looks like a timeout because the ICMP reply is filtered on the way. There is no
+  upstream (cloud) firewall in front of the VM for these ports.
+- **Ports published by Docker bypass the `INPUT` chain** (Docker DNATs them in
+  `PREROUTING` and they traverse `FORWARD`, whose policy is `ACCEPT`). Any port mapped
+  with `ports:` in `docker compose` is reachable from the internet. Therefore the compose
+  file must publish **only** the HTTPS entry point; internal services stay on the
+  compose network without `ports:` (or bind to `127.0.0.1:`).
+- Persistent rules: 443/tcp and 8443/tcp were added to `/etc/iptables/rules.v4`
+  (loaded at boot by `netfilter-persistent`; backup `rules.v4.bak-YYYYMMDD`). The file
+  was edited by hand instead of running `netfilter-persistent save`, which would also
+  persist Docker's own chains and clash with them at boot.
+- Demo entry point: **`https://148.100.99.58:8443`** (TLS, self-signed is acceptable,
+  task F1-BE-05). Port 8080 was closed again after the test.
+- Still to do by a person: open the demo URL on a phone **on mobile data** once
+  F1-BE-05 is deployed (part of F1-HUM-01). The laptop test already shows the VM is
+  reachable from an arbitrary internet connection.
 
 ## 6. Gotchas
 

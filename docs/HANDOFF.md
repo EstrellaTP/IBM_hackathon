@@ -4,6 +4,15 @@ Entradas nuevas **arriba del todo**. Formato en `CLAUDE.md` §1.2.
 
 ---
 
+### [CC] 01:12 18/10 · F0-CC-LOOP · Hook Stop del carril CC
+- Hecho: `.claude/hooks/check_done.py` + `.claude/settings.json` (hook `Stop`, comando `python "$CLAUDE_PROJECT_DIR/.claude/hooks/check_done.py"`). Bloquea la parada mientras haya issues `para-cc` abiertos, filas de `TASKS.md` con carril que contenga `CC` en ⬜/🟡 (⛔ no cuenta) o casillas `- [ ] [CC]` en `QUALITY.md`; el `reason` lista todo y remite a CLAUDE.md §0. Válvulas: `.claude/ALLOW_STOP` o >60 bloqueos seguidos sin commit nuevo (`.claude/.stop_count`, se reinicia al cambiar `HEAD`). Ambos ficheros en `.gitignore`. `TASKS.md` se lee por columnas (la descripción de F0-CC-LOOP contiene "⬜/🟡" y un `sed` ingenuo se equivoca).
+- Pruebas a mano con Estrella delante: (a) repo real → `decision=block` con 19 tareas y 11 casillas; (b) con `ALLOW_STOP` → stdout vacío; (c) clon con todo cerrado y 0 issues reales → stdout vacío. 9 tests en `tests/hooks/test_check_done.py`.
+- Además: `scripts/smoke_test.sh` ahora elige `python3` o `python` y usa `-m ruff`/`-m pytest` (en Git Bash de Windows `ruff` no está en el PATH). `.gitattributes` fuerza LF: con `core.autocrlf=true` los `.sh` llegarían con CRLF y romperían bash en la VM.
+- Rama: `cc/f0-cc-loop-stop-hook`, integrada en `main` por fast-forward.
+- Para el otro carril: [APP] si añadís ficheros desde Windows, el `.gitattributes` ya normaliza. Para soltar al agente CC: `touch .claude/ALLOW_STOP`.
+- Issues: ninguno.
+- Captura para el jurado: no aplica.
+
 ### [APP] 01:09 18/10 · F1-ML-01 · Detector de episodios v1
 - Hecho: `services/detector/core.py` con `PatientDetector` (una instancia por paciente) y `FixedRuleDetector` (regla `HR > 100` para comparar). Cada `step_seconds` resume los últimos `window_seconds` en pulso medio, actividad media (ENMO = max(0, |acc| − 1 g), van Hees 2013) y EDA media; calcula z-scores frente a una línea base personal (media y varianza con ponderación exponencial, West 1979) que **solo se actualiza con ventanas tranquilas**, para que un episodio no contamine la línea base. Episodio = `hr_z ≥ 3` **y** `activity_z ≤ 1` (regla de movimiento); severidad `extreme` con `hr_z ≥ 6`; antirrebote de 600 s; calibración de 30 ventanas (5 min); ventanas con menos de 10 lecturas de pulso se descartan. Python puro (sin NumPy), igual en x86 y en s390x.
 - Configuración: `services/detector/settings.py` lee `DETECTOR_<CAMPO>` del entorno (p. ej. `DETECTOR_HR_Z_THRESHOLD=2.5`). Quien haga F0-BE-03, por favor, añada estas variables con sus valores por defecto a `infra/env.example`.

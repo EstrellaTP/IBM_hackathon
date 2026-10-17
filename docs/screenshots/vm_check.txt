@@ -1,0 +1,75 @@
+# LinuxONE VM check - 2026-10-17T23:14:52Z
+
+$ uname -m
+s390x
+
+$ uname -srv
+Linux 6.8.0-147-generic #147-Ubuntu SMP Thu Sep 24 10:59:43 UTC 2026
+
+$ grep PRETTY_NAME /etc/os-release
+PRETTY_NAME="Ubuntu 24.04.5 LTS"
+
+$ lscpu | grep -E 'Architecture|Byte Order|^CPU\(s\)|Machine type|CPU static MHz|Hypervisor|Flags'
+Architecture:                            s390x
+Byte Order:                              Big Endian
+CPU(s):                                  3
+Machine type:                            9175
+CPU static MHz:                          5508
+Flags:                                   esan3 zarch stfle msa ldisp eimm dfp edat etf3eh highgprs te vx vxd vxe gs vxe2 vxp sort dflt vxp2 nnpa sie
+Hypervisor:                              z/VM 7.3.0
+Hypervisor vendor:                       IBM
+
+$ grep -o -w nnpa /proc/cpuinfo | head -1
+nnpa
+
+$ nproc && free -h | head -2
+3
+               total        used        free      shared  buff/cache   available
+Mem:           7.8Gi       1.3Gi       5.1Gi       9.4Mi       1.6Gi       6.5Gi
+
+$ df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/dasda1      50G  3.2G   44G   7% /
+
+$ python3 --version
+Python 3.12.3
+
+$ docker version --format 'client={{.Client.Version}} server={{.Server.Version}} os/arch={{.Server.Os}}/{{.Server.Arch}}'
+client=29.1.3 server=29.1.3 os/arch=linux/s390x
+
+$ docker compose version
+Docker Compose version 2.40.3+ds1-0ubuntu1~24.04.1
+
+$ docker run --rm python:3.12-slim python -c 'import platform, sys; print(platform.machine(), sys.byteorder)'
+s390x big
+
+$ lsmod | grep -E '^(aes_s390|sha256_s390|sha3_256_s390|ghash_s390|pkey|zcrypt) '
+pkey                   45056  0
+zcrypt                135168  1 pkey
+ghash_s390             12288  0
+sha3_256_s390          16384  0
+sha256_s390            16384  0
+aes_s390               28672  0
+
+$ icainfo | grep -E 'function|AES (CBC|GCM)|SHA-256|ECDSA Sign|X25519 Derive'
+ function      |   dynamic  |   static   |  software  
+       SHA-256 |     no     |    yes     |      -     
+    ECDSA Sign |     no     |    yes     |      -     
+ X25519 Derive |     no     |    yes     |      -     
+       AES CBC |     no     |    yes     |      -     
+       AES GCM |     no     |    yes     |      -     
+
+$ lszcrypt
+lszcrypt: No crypto card devices found.
+
+$ test -e /sys/firmware/uv/prot_virt_guest && cat /sys/firmware/uv/prot_virt_guest || echo 'not a Secure Execution guest (no /sys/firmware/uv)'
+not a Secure Execution guest (no /sys/firmware/uv)
+
+$ gcc -O2 -o /tmp/nnpa_check '/home/linux1/IBM_hackathon/tools/vm_check/nnpa_check.c' -lzdnn && /tmp/nnpa_check
+zdnn_library_version=0x010001
+nnpa_installed=yes
+nnpa_matmul_op=yes
+nnpa_add=yes
+nnpa_max_dim_idx_size=32768
+zdnn_max_runnable_version=0x0100ff
+

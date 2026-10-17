@@ -1,0 +1,63 @@
+# LinuxONE VM check
+
+What the LinuxONE Community Cloud VM offers, what had to be installed, and what
+fails on s390x with its workaround. Raw transcript for the jury:
+[`docs/screenshots/vm_check.txt`](screenshots/vm_check.txt), regenerated with:
+
+```bash
+scripts/sync_to_vm.sh                                   # copy the repo (no secrets, no data)
+ssh l1cc 'bash -s' < scripts/vm_check.sh > docs/screenshots/vm_check.txt
+```
+
+## 1. Machine (checked 2026-10-18, task F0-BE-01)
+
+| Item | Value | Why it matters |
+|---|---|---|
+| Architecture | `s390x`, **Big Endian** | Binary formats must fix byte order; compare laptop vs VM predictions |
+| Machine type | `9175` = **IBM z17** (Telum II processor), 5.5 GHz | Latest IBM Z generation |
+| Hypervisor | z/VM 7.3.0 | |
+| CPU facilities | `nnpa` present (also `vx`, `vxe2`, `vxp2`, `sort`, `dflt`, `msa`) | Integrated Accelerator for AI available |
+| NNPA usable from the guest | **yes** (zDNN 1.0.1: `nnpa_installed=yes`, `NNPA_MATMUL_OP=yes`, `NNPA_ADD=yes`) | Real accelerator comparison possible (task F3-BE-02) |
+| vCPUs / RAM / swap | 3 / 7.8 GiB / none | Training on NHANES must stream `PAXMIN` in chunks |
+| Disk | 50 GB, 44 GB free | Enough for WESAD (~2 GB), DEPRESJON, NHANES cycle H |
+| OS / kernel | Ubuntu 24.04.5 LTS, Linux 6.8.0-147 | |
+| Python (host) | 3.12.3 | |
+| Docker | **not preinstalled**; installed `docker.io` 29.1.3 + `docker-compose-v2` 2.40.3 from Ubuntu | CLAUDE.md §6 assumed it was preinstalled |
+| Official images | `python:3.12-slim` pulls the `linux/s390x` variant and reports `s390x big` | Multi-arch images work as-is |
+| sudo | passwordless for `linux1` | |
+| Public IP | `148.100.99.58` (interface `enc1000`) | |
+
+## 2. Security features
+
+| Feature | Status | Use in the project |
+|---|---|---|
+| **CPACF** (on-chip crypto, MSA 9) | Present. `icainfo`: AES-CBC/GCM/XTS, SHA-2/SHA-3, GHASH, ECDSA, Ed25519, X25519 **in hardware** (static) | Fernet (AES-128-CBC + HMAC-SHA256) for encryption at rest and TLS 1.3 (X25519 + AES-GCM) run on CPACF. Kernel modules `aes_s390`, `sha256_s390`, `ghash_s390`, `pkey` loaded |
+| Crypto Express cards (HSM) | None (`lszcrypt: No crypto card devices found`) | No secure-key (HSM-held) keys; keys live in `.env` on the VM |
+| Secure Execution | **Not enabled** (no `/sys/firmware/uv`) | Must be stated honestly: the datathon VM is a demo environment, not the production deployment (CLAUDE.md §11) |
+| Inbound firewall | `iptables` in the guest: `INPUT` accepts only 22/tcp, ICMP and established; everything else `REJECT` | See F0-BE-05 for opening the demo ports |
+
+## 3. Installed on the VM
+
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose-v2 python3-pip python3-venv python3-dev \
+    build-essential cmake git tmux libzdnn0 libzdnn-dev libica-utils
+sudo usermod -aG docker linux1   # new SSH sessions can run docker without sudo
+sudo systemctl enable --now docker
+```
+
+## 4. Python libraries on s390x (task F0-BE-02)
+
+_Filled in by F0-BE-02._
+
+## 5. Inbound ports (task F0-BE-05)
+
+_Filled in by F0-BE-05._
+
+## 6. Gotchas
+
+- `ssh l1cc "<cmd>"` only; never interactive sessions from the agent.
+- The repository is private, so the VM has no GitHub credentials: code is copied with
+  `scripts/sync_to_vm.sh` (git-tracked files only).
+- Commits from Windows: `.gitattributes` forces LF, otherwise shell scripts arrive
+  with CRLF and fail in bash on the VM.

@@ -20,8 +20,8 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 | F0-BE-03 | `infra/docker-compose.yml` + Dockerfiles con los 5 servicios "hola mundo" (FastAPI `/health`) e `infra/env.example` | APP | ⬜ | F0-COM-01 |
 | F0-BE-04 | Levantar F0-BE-03 en la VM, `docker ps`, captura | CC | ⬜ | F0-BE-02, F0-BE-03 |
 | F0-ML-01 | Scripts de descarga en `ml/data/download_*.py` (NHANES PAXMIN/DPQ/DEMO ciclos G y H, DEPRESJON, enfermeras, WESAD). Datos a `ml/data/raw/` (no se suben). **Descargar directamente en la VM** (los datos de salud viven en LinuxONE) tras comprobar espacio con `df -h`: `PAXMIN` minuto a minuto ocupa varios GB por ciclo y WESAD ~2 GB; si no cabe, procesar `PAXMIN` por trozos y quedarse solo con las columnas necesarias, empezando por el ciclo H | CC | 🟡 CC | — |
-| F0-ML-02 | Loaders reproducibles en `ml/data/loaders.py` con orden de bytes explícito + generador de datos sintéticos con el mismo formato (para tests y para `[APP]`) | CC (cogida de APP) | 🟡 CC | — |
-| F0-ML-03 | Ejecutar loaders con datos reales; anotar en `HANDOFF.md` formas, columnas reales y sorpresas | CC | ⬜ | F0-ML-01, F0-ML-02 |
+| F0-ML-02 | Loaders reproducibles en `ml/data/loaders.py` con orden de bytes explícito + generador de datos sintéticos con el mismo formato (para tests y para `[APP]`) | CC (cogida de APP) | ✅ | — |
+| F0-ML-03 | Ejecutar loaders con datos reales; anotar en `HANDOFF.md` formas, columnas reales y sorpresas | CC | ✅ | F0-ML-01, F0-ML-02 |
 | F0-FE-01 | Esqueleto `frontend/patient` y `frontend/clinician` (HTML + JS) con datos falsos que cumplen los contratos | APP | ⬜ | F0-COM-01 |
 | F0-HUM-01 | Decidir nombre definitivo (MindHolter es provisional) y licencia (MIT por defecto) → `DECISIONS.md` | HUM | ⬜ | — |
 | F0-HUM-02 | Confirmar si alguien tiene wearable compatible (Polar H10, Garmin/Polar con emisión de FC) | HUM | ⬜ | — |

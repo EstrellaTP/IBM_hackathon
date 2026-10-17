@@ -42,7 +42,7 @@ Si una tarea necesita algo que tu carril no tiene (por ejemplo, `[APP]` necesita
 ### 1.3 Ramas, commits y PRs
 
 - Ramas: `cc/<ID>-<slug>` para Claude Code, `app/<ID>-<slug>` para la app, `hum/<nombre>-<slug>` para personas.
-- **Nunca** `push --force` a `main`. Integración siempre por PR. Si el otro agente no está para revisar, puedes hacer merge de tu propio PR cuando los tests pasen y no toque ficheros que el otro tenga `🟡 en curso`.
+- **Nunca** `push --force` a `main`. Integración por PR cuando se pueda. Si tu carril no puede abrir PRs (le pasa a `[APP]`: la API de GitHub le da 404), integra con *fast-forward*: `git fetch origin main && git rebase origin/main`, tests en verde, `git checkout main && git merge --ff-only <rama> && git push origin main`, y deja la rama en remoto para que el otro carril pueda revisarla. Si el otro agente no está para revisar, puedes hacer merge de tu propio PR cuando los tests pasen y no toque ficheros que el otro tenga `🟡 en curso`.
 - Commits pequeños, en inglés, imperativo: `Add SignalBatch schema`. PRs con: qué cambia, cómo probarlo, captura si aplica.
 - Antes de crear la rama: `git fetch origin main && git rebase origin/main`.
 - Conflictos en `TASKS.md` o `HANDOFF.md`: conserva **las dos** versiones (son tablón y diario, no código).

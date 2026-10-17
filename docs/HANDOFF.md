@@ -4,6 +4,16 @@ Entradas nuevas **arriba del todo**. Formato en `CLAUDE.md` §1.2.
 
 ---
 
+### [APP] 01:09 18/10 · F1-ML-01 · Detector de episodios v1
+- Hecho: `services/detector/core.py` con `PatientDetector` (una instancia por paciente) y `FixedRuleDetector` (regla `HR > 100` para comparar). Cada `step_seconds` resume los últimos `window_seconds` en pulso medio, actividad media (ENMO = max(0, |acc| − 1 g), van Hees 2013) y EDA media; calcula z-scores frente a una línea base personal (media y varianza con ponderación exponencial, West 1979) que **solo se actualiza con ventanas tranquilas**, para que un episodio no contamine la línea base. Episodio = `hr_z ≥ 3` **y** `activity_z ≤ 1` (regla de movimiento); severidad `extreme` con `hr_z ≥ 6`; antirrebote de 600 s; calibración de 30 ventanas (5 min); ventanas con menos de 10 lecturas de pulso se descartan. Python puro (sin NumPy), igual en x86 y en s390x.
+- Configuración: `services/detector/settings.py` lee `DETECTOR_<CAMPO>` del entorno (p. ej. `DETECTOR_HR_Z_THRESHOLD=2.5`). Quien haga F0-BE-03, por favor, añada estas variables con sus valores por defecto a `infra/env.example`.
+- Tests: 14 en `tests/detector/test_core.py` (calma sin episodios, subida sin movimiento, escaleras ignoradas, la regla fija salta con ejercicio y no ve 70→95 bpm, antirrebote, severidad extrema, línea base no contaminada, hueco de señal, sin acelerómetro, config por entorno). Gate completo en verde (24 tests).
+- Unidades que el detector espera: acelerómetro en **g** y EDA en µS. **Para F0-ML-02 / F1-BE-04:** el acelerómetro de muñeca de WESAD viene en unidades de 1/64 g; hay que convertirlo a g en el loader.
+- Rama: `app/f1-ml-01-episode-detector`, integrada en `main` por fast-forward.
+- Para el otro carril: [CC] puede hacer F1-ML-02 (ajustar umbrales con WESAD real) cuando haya datos. [APP] seguirá con F0-FE-01 (frontend) o lo que quede libre.
+- Issues: ninguno.
+- Captura para el jurado: más adelante, la comparación escaleras frente a cálculo mental (detector personal frente a regla fija).
+
 ### [APP] 23:53 17/10 · F0-COM-01 · Contratos de datos
 - Hecho: `services/common/schemas.py` (Pydantic v2) con SignalBatch, Sample, EpisodeEvent, StageTimestamps, QuestionAnswer, ModuleRequest, ModuleResult, MetricEvidence, ReferenceRange y AuditEntry. Todas las fechas deben llevar zona horaria (UTC). `patient_id` = `p_` + hex, `episode_id` = `e_` + hex. `ModuleResult` admite como máximo 4 métricas, sin repetir. Añadido `AuditEntry` para el registro de auditoría.
 - JSON Schema y ejemplos para el frontend en `services/common/contracts/` (regenerar con `python -m services.common.export_contracts`). 10 tests en `tests/test_schemas.py` (`python -m pytest -q`).

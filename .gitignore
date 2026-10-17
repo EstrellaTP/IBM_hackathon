@@ -1,0 +1,32 @@
+# Data: never commit datasets or health data
+ml/data/raw/
+ml/data/processed/
+*.pkl
+*.npy
+*.npz
+*.parquet
+*.zip
+*.xpt
+*.XPT
+
+# Secrets
+.env
+*.key
+*.pem
+certs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Models (small portable models may be committed explicitly with git add -f)
+ml/models/artifacts/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/

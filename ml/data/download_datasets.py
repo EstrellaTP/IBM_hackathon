@@ -148,11 +148,15 @@ DATASETS: dict[str, Dataset] = {
         files=(_nhanes(2013, "PAXMIN_H", 9_351_691_760, large=True),),
     ),
     "nhanes_g": Dataset(
-        description="NHANES 2011-2012 (cycle G): demographics and PHQ-9",
+        description="NHANES 2011-2012 (cycle G): demographics, PHQ-9, accelerometer "
+        "header, hourly and daily summaries (MIMS)",
         licence="Public domain (US CDC/NCHS)",
         files=(
             _nhanes(2011, "DEMO_G", 3_753_760),
             _nhanes(2011, "DPQ_G", 496_480),
+            _nhanes(2011, "PAXHD_G", 385_280),
+            _nhanes(2011, "PAXDAY_G", 6_486_720),
+            _nhanes(2011, "PAXHR_G", 128_186_160),
         ),
     ),
     "nhanes_g_minute": Dataset(

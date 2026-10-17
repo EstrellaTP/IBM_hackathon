@@ -2,6 +2,7 @@
   "$defs": {
     "Period": {
       "additionalProperties": false,
+      "description": "Recording period to classify. Serialised with the key ``from``.",
       "properties": {
         "from": {
           "format": "date-time",
@@ -22,6 +23,7 @@
       "type": "object"
     },
     "Suspicion": {
+      "description": "Clinical hypothesis selected by the clinician. Only that module runs.",
       "enum": [
         "depression"
       ],

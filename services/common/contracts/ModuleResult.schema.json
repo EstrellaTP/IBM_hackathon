@@ -2,6 +2,7 @@
   "$defs": {
     "DataQuality": {
       "additionalProperties": false,
+      "description": "Recording completeness, always shown next to the result.",
       "properties": {
         "valid_days": {
           "minimum": 0,
@@ -23,6 +24,7 @@
     },
     "MetricEvidence": {
       "additionalProperties": false,
+      "description": "One dashboard chart: the patient's series, its reference range and whether it is evidence.",
       "properties": {
         "name": {
           "$ref": "#/$defs/MetricName"
@@ -80,6 +82,7 @@
       "type": "object"
     },
     "MetricName": {
+      "description": "The four metrics shown on the evidence dashboard.",
       "enum": [
         "sleep",
         "circadian_rhythm",
@@ -90,6 +93,7 @@
       "type": "string"
     },
     "ModuleOutcome": {
+      "description": "Output of a suspicion module. ``NOT_COMPATIBLE`` never means \"ruled out\".",
       "enum": [
         "compatible",
         "not_compatible"
@@ -130,6 +134,7 @@
     },
     "SeriesPoint": {
       "additionalProperties": false,
+      "description": "One daily value of a metric for the patient.",
       "properties": {
         "day": {
           "description": "ISO date, e.g. '2026-10-17'",
@@ -156,6 +161,7 @@
       "type": "object"
     },
     "Suspicion": {
+      "description": "Clinical hypothesis selected by the clinician. Only that module runs.",
       "enum": [
         "depression"
       ],

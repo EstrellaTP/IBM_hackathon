@@ -97,7 +97,50 @@ Si una tarea necesita algo que tu carril no tiene (por ejemplo, `[APP]` necesita
 4. **Nunca subas datos de salud, datasets, claves ni `.env`.** Ni siquiera muestras "pequeñas" de datasets con licencia restringida.
 5. Si una decisión afecta a la arquitectura o al relato del pitch, propón y pide confirmación a `[HUM]` en `HANDOFF.md` antes de implementarla. Mientras tanto, sigue con otra tarea.
 6. Al terminar cada tarea, indica qué captura o log guardar como prueba para el jurado (sección 13).
-7. Idioma: **código, UI y README en inglés** (jurado internacional y vídeo en inglés); `CLAUDE.md`, `TASKS.md`, `HANDOFF.md` y `DECISIONS.md` en español.
+7. Idioma: **todo el código y todo lo que lo rodea va en inglés** (sección 1.7): identificadores, comentarios, docstrings, logs, mensajes de error, tests, commits, ramas, UI, README y documentación técnica. `CLAUDE.md`, `TASKS.md`, `HANDOFF.md` y `DECISIONS.md` (coordinación interna del equipo) siguen en español.
+8. **Los estándares de código de la sección 1.7 son obligatorios.** Código que no los cumple no se integra.
+
+### 1.7 Estándares de código (obligatorio)
+
+Todo debe poder leerlo y mantenerlo cualquier ingeniero del mundo sin conocer al equipo: convenciones estándar, estructura clara, en inglés y comentado. `scripts/smoke_test.sh` pasa `ruff` (formato + lint) y los tests: si falla, no se integra.
+
+**Idioma.** Inglés en: nombres de ficheros, carpetas, variables, funciones, clases, comentarios, docstrings, mensajes de log y de error, textos de la UI, tests, mensajes de commit, nombres de rama, títulos y cuerpo de issues y PRs, README y docs técnicas. Nada de spanglish (`calcular_sleep`, `datosPaciente`).
+
+**Python** (versión 3.10+):
+- Estilo [PEP 8](https://peps.python.org/pep-0008/), aplicado con `ruff format` y `ruff check` según `pyproject.toml` (líneas de 100).
+- Nombres: `snake_case` para módulos, paquetes, funciones y variables; `PascalCase` para clases; `UPPER_SNAKE_CASE` para constantes; `_leading_underscore` para lo privado. Nombres descriptivos y completos (`resting_heart_rate`, no `rhr2`), salvo convenciones del dominio documentadas (`IS`, `IV`, `L5`, `M10`).
+- **Type hints** en todas las funciones públicas ([PEP 484](https://peps.python.org/pep-0484/)) y `from __future__ import annotations`.
+- **Docstrings** ([PEP 257](https://peps.python.org/pep-0257/), estilo Google) en cada módulo, clase y función pública: qué hace, `Args:`, `Returns:`, `Raises:`. El docstring del módulo explica su papel en la arquitectura.
+- **Comentarios que explican el porqué**, no el qué: decisiones, umbrales, referencias científicas (cada fórmula de features con su cita), limitaciones conocidas y trucos de s390x/big-endian.
+- Sin `print`: módulo `logging` con logger por módulo (`logger = logging.getLogger(__name__)`). **Nunca** datos de salud en los logs: solo `patient_id` seudónimo, ids de episodio y tiempos.
+- Configuración por variables de entorno ([12-factor](https://12factor.net/config)), con valores por defecto seguros y documentados en `infra/env.example`. Sin rutas, IPs ni claves en el código.
+- Sin números mágicos: constantes con nombre y comentario de dónde salen.
+- Funciones cortas y con una responsabilidad; nada de lógica en notebooks (los notebooks solo exploran e importan de los módulos).
+- Errores explícitos: excepciones concretas, nunca `except:` desnudo.
+- Dependencias fijadas en `requirements.txt` de cada servicio, y añadidas a `ATTRIBUTIONS.md`.
+
+**Estructura de un servicio** (igual en todos):
+```
+services/<service_name>/
+    __init__.py
+    main.py          # FastAPI app factory and startup only
+    api.py           # HTTP / WebSocket routes, thin
+    core.py          # domain logic, no web framework imports
+    settings.py      # environment-based configuration
+    requirements.txt
+    Dockerfile
+tests/<service_name>/test_*.py   # pytest, mirrors the source tree
+```
+
+**APIs:** REST con FastAPI (OpenAPI automático en `/docs`), rutas versionadas `/api/v1/...` en `kebab-case` y plural (`/api/v1/episodes`), campos JSON en `snake_case`, fechas ISO 8601 en UTC, códigos HTTP correctos (201 al crear, 422 al validar, 404…), `GET /health` en cada servicio.
+
+**Frontend (HTML/CSS/JS):** HTML semántico y accesible (WCAG 2.1 AA: contraste, `label` en formularios, `alt` en imágenes, navegable con teclado); JavaScript moderno con módulos ES, `const`/`let`, `camelCase` para variables y funciones, `PascalCase` para clases, JSDoc en funciones públicas; clases CSS en `kebab-case`; ficheros en `kebab-case` (`evidence-chart.js`). Sin frameworks pesados ni paso de build.
+
+**Tests:** `pytest`, ficheros `test_*.py`, un comportamiento por test con nombre que lo describe (`test_detector_ignores_heart_rate_explained_by_movement`). Datos sintéticos, nunca datos reales en los tests.
+
+**Git:** commits en inglés con [Conventional Commits](https://www.conventionalcommits.org/) (`feat: add rolling z-score detector`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`), con `Fixes #n` si cierran un issue. Ramas `cc/<task-id>-<short-slug>` o `app/<task-id>-<short-slug>` en minúsculas y `kebab-case`.
+
+**Docker:** un `Dockerfile` por servicio, imagen base oficial multi-arch con `linux/s390x`, usuario no root, sin secretos en la imagen; servicios de `docker compose` en `kebab-case`.
 
 ---
 
@@ -307,7 +350,8 @@ Panel del médico (navegador): elige la sospecha, activa el módulo, ve gráfica
 **Estructura del repo:**
 ```
 /services/common/schemas.py   ← contratos compartidos
-/services/ingest-api  /services/detector  /services/suspicion-module  /services/evidence-api
+/services/ingest_api  /services/detector  /services/suspicion_module  /services/evidence_api   ← paquetes Python en snake_case
+                                 (en docker compose los servicios se llaman ingest-api, detector, suspicion-module, evidence-api)
 /frontend/patient     /frontend/clinician
 /ml/data (loaders; raw/ ignorado)  /ml/features  /ml/models  /ml/notebooks  /ml/reports
 /tools/simulator      /tools/benchmark

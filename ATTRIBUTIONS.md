@@ -11,6 +11,7 @@ Every open-source library, dataset and external resource used in this project. A
 ## Libraries
 - **Pydantic** (MIT) — data contracts. https://github.com/pydantic/pydantic
 - **pytest** (MIT) — tests. https://github.com/pytest-dev/pytest
+- **Ruff** (MIT) — formatting and linting. https://github.com/astral-sh/ruff
 
 ## Infrastructure
 - IBM LinuxONE Community Cloud (Marist College). https://linuxone.cloud.marist.edu/

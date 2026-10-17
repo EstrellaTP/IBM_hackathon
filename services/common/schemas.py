@@ -13,7 +13,6 @@ from __future__ import annotations
 import secrets
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -29,10 +28,12 @@ def utcnow() -> datetime:
 
 
 def new_patient_id() -> str:
+    """Return a random pseudonymous patient id (``p_`` + 16 hex chars)."""
     return f"p_{secrets.token_hex(8)}"
 
 
 def new_episode_id() -> str:
+    """Return a random episode id (``e_`` + 16 hex chars)."""
     return f"e_{secrets.token_hex(8)}"
 
 
@@ -42,7 +43,8 @@ class _Contract(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=False)
 
 
-def _require_tz(value: Optional[datetime]) -> Optional[datetime]:
+def _require_tz(value: datetime | None) -> datetime | None:
+    """Reject naive datetimes so every component compares times in UTC."""
     if value is not None and value.tzinfo is None:
         raise ValueError("timestamps must be timezone-aware (use UTC)")
     return value
@@ -54,24 +56,32 @@ def _require_tz(value: Optional[datetime]) -> Optional[datetime]:
 
 
 class Device(str, Enum):
-    E4 = "e4"            # Empatica E4 (nurse stress dataset)
-    WESAD = "wesad"      # WESAD replay
-    POLAR = "polar"      # real Bluetooth HR band (optional demo)
-    SIM = "sim"          # synthetic data
+    """Source of a signal batch."""
+
+    E4 = "e4"  # Empatica E4 (nurse stress dataset)
+    WESAD = "wesad"  # WESAD replay
+    POLAR = "polar"  # real Bluetooth HR band (optional demo)
+    SIM = "sim"  # synthetic data
 
 
 class Severity(str, Enum):
+    """How unusual an episode is; ``EXTREME`` switches the question to the safety protocol."""
+
     NORMAL = "normal"
     EXTREME = "extreme"  # triggers the safety protocol ("Are you OK?")
 
 
 class DetectionMethod(str, Enum):
+    """Algorithm that flagged the episode."""
+
     ZSCORE = "zscore"
     IFOREST = "iforest"
     FIXED_RULE = "fixed_rule"  # baseline for comparison only (e.g. HR > 100)
 
 
 class Activity(str, Enum):
+    """What the patient says they were doing when the episode happened."""
+
     WORK = "work"
     REST = "rest"
     SOCIAL = "social"
@@ -80,22 +90,30 @@ class Activity(str, Enum):
 
 
 class SafetyAction(str, Enum):
+    """Button pressed in the safety protocol. Recorded only; nothing is actually sent."""
+
     # Simulated only: the system never calls anyone on its own.
     CALL_112_SIMULATED = "call_112_simulated"
     NOTIFY_CONTACT_SIMULATED = "notify_contact_simulated"
 
 
 class Suspicion(str, Enum):
+    """Clinical hypothesis selected by the clinician. Only that module runs."""
+
     DEPRESSION = "depression"
     # ADHD and psychosis modules are optional and require Simula's written permission.
 
 
 class ModuleOutcome(str, Enum):
+    """Output of a suspicion module. ``NOT_COMPATIBLE`` never means "ruled out"."""
+
     COMPATIBLE = "compatible"
     NOT_COMPATIBLE = "not_compatible"  # never means "ruled out"
 
 
 class MetricName(str, Enum):
+    """The four metrics shown on the evidence dashboard."""
+
     SLEEP = "sleep"
     CIRCADIAN_RHYTHM = "circadian_rhythm"
     DAYTIME_ACTIVITY = "daytime_activity"
@@ -111,11 +129,11 @@ class Sample(_Contract):
     """One reading from the band. Accelerometer in g, HR in bpm, EDA in µS."""
 
     t: datetime
-    hr: Optional[float] = Field(default=None, ge=20, le=250)
-    acc_x: Optional[float] = None
-    acc_y: Optional[float] = None
-    acc_z: Optional[float] = None
-    eda: Optional[float] = Field(default=None, ge=0)
+    hr: float | None = Field(default=None, ge=20, le=250)
+    acc_x: float | None = None
+    acc_y: float | None = None
+    acc_z: float | None = None
+    eda: float | None = Field(default=None, ge=0)
 
     _tz = field_validator("t")(_require_tz)
 
@@ -131,7 +149,7 @@ class SignalBatch(_Contract):
     _tz = field_validator("sent_at")(_require_tz)
 
     @model_validator(mode="after")
-    def _samples_sorted(self) -> "SignalBatch":
+    def _samples_sorted(self) -> SignalBatch:
         times = [s.t for s in self.samples]
         if times != sorted(times):
             raise ValueError("samples must be sorted by time")
@@ -141,17 +159,17 @@ class SignalBatch(_Contract):
 class StageTimestamps(_Contract):
     """Per-stage timestamps used to separate network latency from server latency."""
 
-    sample_t: datetime                     # time of the last sample in the window
-    ingested_at: Optional[datetime] = None
-    inferred_at: Optional[datetime] = None
-    pushed_at: Optional[datetime] = None   # question sent to the phone
-    received_at: Optional[datetime] = None  # phone confirms reception (optional)
+    sample_t: datetime  # time of the last sample in the window
+    ingested_at: datetime | None = None
+    inferred_at: datetime | None = None
+    pushed_at: datetime | None = None  # question sent to the phone
+    received_at: datetime | None = None  # phone confirms reception (optional)
 
-    _tz = field_validator(
-        "sample_t", "ingested_at", "inferred_at", "pushed_at", "received_at"
-    )(_require_tz)
+    _tz = field_validator("sample_t", "ingested_at", "inferred_at", "pushed_at", "received_at")(
+        _require_tz
+    )
 
-    def server_latency_ms(self) -> Optional[float]:
+    def server_latency_ms(self) -> float | None:
         """Ingestion -> inference: the part that depends on LinuxONE."""
         if self.ingested_at and self.inferred_at:
             return (self.inferred_at - self.ingested_at).total_seconds() * 1000
@@ -178,16 +196,16 @@ class QuestionAnswer(_Contract):
     """Phone -> store. The patient's in-the-moment answer, linked to its episode."""
 
     episode_id: str = Field(pattern=EPISODE_ID_PATTERN)
-    activity: Optional[Activity] = None
-    activity_text: Optional[str] = Field(default=None, max_length=280)
-    mood_1_5: Optional[int] = Field(default=None, ge=1, le=5)
-    safety_action: Optional[SafetyAction] = None
+    activity: Activity | None = None
+    activity_text: str | None = Field(default=None, max_length=280)
+    mood_1_5: int | None = Field(default=None, ge=1, le=5)
+    safety_action: SafetyAction | None = None
     answered_at: datetime
 
     _tz = field_validator("answered_at")(_require_tz)
 
     @model_validator(mode="after")
-    def _not_empty(self) -> "QuestionAnswer":
+    def _not_empty(self) -> QuestionAnswer:
         if (
             self.activity is None
             and self.mood_1_5 is None
@@ -204,6 +222,8 @@ class QuestionAnswer(_Contract):
 
 
 class Period(_Contract):
+    """Recording period to classify. Serialised with the key ``from``."""
+
     from_: datetime = Field(alias="from")
     to: datetime
 
@@ -212,7 +232,7 @@ class Period(_Contract):
     _tz = field_validator("from_", "to")(_require_tz)
 
     @model_validator(mode="after")
-    def _ordered(self) -> "Period":
+    def _ordered(self) -> Period:
         if self.to <= self.from_:
             raise ValueError("'to' must be after 'from'")
         return self
@@ -228,6 +248,8 @@ class ModuleRequest(_Contract):
 
 
 class DataQuality(_Contract):
+    """Recording completeness, always shown next to the result."""
+
     valid_days: int = Field(ge=0)
     missing_hours: float = Field(ge=0)
 
@@ -241,24 +263,28 @@ class ReferenceRange(_Contract):
     group: str = Field(description="e.g. 'F_30-39'")
 
     @model_validator(mode="after")
-    def _ordered(self) -> "ReferenceRange":
+    def _ordered(self) -> ReferenceRange:
         if not (self.p10 <= self.p50 <= self.p90):
             raise ValueError("percentiles must satisfy p10 <= p50 <= p90")
         return self
 
 
 class SeriesPoint(_Contract):
+    """One daily value of a metric for the patient."""
+
     day: str = Field(description="ISO date, e.g. '2026-10-17'")
-    value: Optional[float] = None  # None = no valid data that day
+    value: float | None = None  # None = no valid data that day
 
 
 class MetricEvidence(_Contract):
+    """One dashboard chart: the patient's series, its reference range and whether it is evidence."""
+
     name: MetricName
     unit: str = ""
     patient_series: list[SeriesPoint] = Field(default_factory=list)
-    reference: Optional[ReferenceRange] = None  # None when no reference exists (e.g. no HR in NHANES)
+    reference: ReferenceRange | None = None  # None when no reference exists (e.g. no HR in NHANES)
     is_evidence: bool = False
-    shap: Optional[float] = None
+    shap: float | None = None
     available: bool = True  # False -> dashboard shows "no data for this metric"
 
 
@@ -288,7 +314,7 @@ class ModuleResult(_Contract):
         return v
 
     @model_validator(mode="after")
-    def _unique_metrics(self) -> "ModuleResult":
+    def _unique_metrics(self) -> ModuleResult:
         names = [m.name for m in self.metrics]
         if len(names) != len(set(names)):
             raise ValueError("each metric may appear only once")
@@ -304,10 +330,10 @@ class AuditEntry(_Contract):
     """Append-only record of every inference (AI Act traceability)."""
 
     at: datetime = Field(default_factory=utcnow)
-    actor: str = Field(max_length=64)   # "detector", "suspicion-module", "clinician", …
+    actor: str = Field(max_length=64)  # "detector", "suspicion-module", "clinician", …
     action: str = Field(max_length=64)  # "episode_inference", "module_run", …
     patient_id: str = Field(pattern=PATIENT_ID_PATTERN)
-    model_version: Optional[str] = None
+    model_version: str | None = None
     detail: dict[str, str | float | int | bool | None] = Field(default_factory=dict)
 
     _tz = field_validator("at")(_require_tz)

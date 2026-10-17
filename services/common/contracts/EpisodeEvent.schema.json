@@ -1,6 +1,7 @@
 {
   "$defs": {
     "DetectionMethod": {
+      "description": "Algorithm that flagged the episode.",
       "enum": [
         "zscore",
         "iforest",
@@ -10,6 +11,7 @@
       "type": "string"
     },
     "Severity": {
+      "description": "How unusual an episode is; ``EXTREME`` switches the question to the safety protocol.",
       "enum": [
         "normal",
         "extreme"

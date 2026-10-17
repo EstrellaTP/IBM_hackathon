@@ -5,6 +5,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+echo "== format and lint (ruff)"
+ruff format --check .
+ruff check .
+
 echo "== unit tests"
 python3 -m pytest -q
 

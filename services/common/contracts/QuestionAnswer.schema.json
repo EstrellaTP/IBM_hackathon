@@ -1,6 +1,7 @@
 {
   "$defs": {
     "Activity": {
+      "description": "What the patient says they were doing when the episode happened.",
       "enum": [
         "work",
         "rest",
@@ -12,6 +13,7 @@
       "type": "string"
     },
     "SafetyAction": {
+      "description": "Button pressed in the safety protocol. Recorded only; nothing is actually sent.",
       "enum": [
         "call_112_simulated",
         "notify_contact_simulated"

@@ -1,6 +1,7 @@
 {
   "$defs": {
     "Device": {
+      "description": "Source of a signal batch.",
       "enum": [
         "e4",
         "wesad",

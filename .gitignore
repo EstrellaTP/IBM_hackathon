@@ -30,3 +30,8 @@ ml/models/artifacts/
 .DS_Store
 .vscode/
 .idea/
+
+# Claude Code: local state of the Stop hook (task F0-CC-LOOP)
+.claude/ALLOW_STOP
+.claude/.stop_count
+.claude/settings.local.json

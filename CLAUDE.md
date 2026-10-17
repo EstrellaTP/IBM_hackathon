@@ -15,6 +15,8 @@
 
 ### 0.1 Bucle hasta "excelente"
 
+**No hay plazos ni márgenes de horas.** Lo que importa es avanzar de forma eficiente: priorizar lo que más sube la calidad (orden: issues `bloqueante` → corte vertical → casillas de `QUALITY.md` por impacto en la rúbrica), no ir rápido ni rellenar tiempo.
+
 "Terminado" no es "he acabado mi tarea", sino **`docs/QUALITY.md` con todas las casillas de tu carril marcadas y verificadas**. Por eso:
 
 - Al acabar una tarea no te paras: vuelves al paso 1. Si `TASKS.md` no tiene nada de tu carril, toma la primera casilla sin marcar de tu carril en `QUALITY.md` y conviértela en tarea.
@@ -165,7 +167,7 @@ tests/<service_name>/test_*.py   # pytest, mirrors the source tree
 
 **AI Innovation Excellence Awards** (20 puntos aparte): originalidad del uso de la IA (10) e impacto y excelencia técnica end-to-end y escalable (10).
 
-**Requisito previo técnico:** los 2 labs oficiales de AI/ML (*Predictive AI Hybrid AI scenarios (multi-model)* y *Predictive AI + Generative AI*). Nuestro sistema es multi-modelo para alinearse con el primero.
+Los 2 labs oficiales de AI/ML (*multi-model* y *Predictive + Generative AI*) **no son entregables ni trabajo pendiente**: no dediques tiempo a ellos. Solo sirven de referencia de lo que valora IBM, por eso el sistema es multi-modelo.
 
 ### 2.2 Entregables obligatorios
 
@@ -519,7 +521,7 @@ IBM Z no es imprescindible con diez pacientes: la carga es pequeña y otras nube
 Cuatro flujos que avanzan a la vez: **[ML]** Datos y ML · **[BE]** LinuxONE y backend · **[FE]** Frontend · **[DOC]** Pitch y documentación. Cada fase acaba en un **punto de integración** con criterio de "hecho". El desglose operativo, con IDs y carril (`[CC]`/`[APP]`/`[HUM]`), está en `docs/TASKS.md`.
 
 ### Fase 0 · Cimientos (todo en paralelo)
-- [BE]+[ML] `schemas.py` con los contratos (primero de todo).
+- [BE]+[ML] `schemas.py` con los contratos (primero de todo; ya hecho).
 - [BE] Verificar VM (SSH, `uname -m`, `lscpu`, Docker, instalar librerías en s390x); `docker compose` con los 5 servicios "hola mundo".
 - [ML] Descargar y cargar NHANES (PAXMIN, DPQ, DEMO), DEPRESJON, enfermeras y WESAD; loaders reproducibles con orden de bytes explícito.
 - [FE] Esqueleto de `/patient` y `/clinician` con datos falsos que cumplan los contratos.

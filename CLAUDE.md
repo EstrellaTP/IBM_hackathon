@@ -13,6 +13,17 @@
 5. Trabaja en una rama propia (sección 1.3). Al terminar: tests o comprobación, commit, push, integración en `main`, tarea a `✅ hecha` y una entrada en `HANDOFF.md`.
 6. Repite desde el paso 1 antes de cada tarea nueva: así ves los issues que el otro carril haya abierto mientras trabajabas.
 
+### 0.1 Bucle hasta "excelente"
+
+"Terminado" no es "he acabado mi tarea", sino **`docs/QUALITY.md` con todas las casillas de tu carril marcadas y verificadas**. Por eso:
+
+- Al acabar una tarea no te paras: vuelves al paso 1. Si `TASKS.md` no tiene nada de tu carril, toma la primera casilla sin marcar de tu carril en `QUALITY.md` y conviértela en tarea.
+- Antes de integrar en `main`: `scripts/smoke_test.sh` en verde. Si rompe algo que funcionaba, no se integra. Cuando el corte vertical funcione por primera vez en la VM, crea la etiqueta `git tag demo-ok-1` (y `demo-ok-2`, … en cada mejora probada): siempre tiene que existir una versión que se pueda enseñar.
+- Una casilla se marca solo con la verificación indicada y un enlace a la prueba.
+- Cada vez que cierres una casilla, haz una autoevaluación rápida contra la rúbrica (§2.1): ¿qué haría subir un punto en R1–R4? Si se te ocurre algo concreto y barato, ábrelo como issue para el carril que corresponda.
+- Si estás bloqueado por algo que solo puede hacer una persona: issue `para-equipo` y sigue con otra cosa. **No esperes de brazos cruzados.**
+- `[CC]` tiene un hook `Stop` (tarea F0-CC-LOOP) que no le deja parar mientras quede trabajo de su carril; `[APP]` hace revisiones periódicas programadas.
+
 ---
 
 ## 1. Protocolo de trabajo en equipo (agentes + personas)

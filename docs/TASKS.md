@@ -12,7 +12,7 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 | ID | Tarea | Carril | Estado | Depende de |
 |---|---|---|---|---|
 | F0-DOC-01 | `CLAUDE.md`, `TASKS.md`, `HANDOFF.md`, `DECISIONS.md`, README base, `.gitignore`, LICENSE, `ATTRIBUTIONS.md` | APP | ✅ | — |
-| F0-COM-01 | `services/common/schemas.py` con los contratos de CLAUDE.md §9 + tests | APP | ⬜ | — |
+| F0-COM-01 | `services/common/schemas.py` con los contratos de CLAUDE.md §9 + tests | APP | 🟡 | — |
 | F0-BE-01 | Verificar VM: SSH, `uname -m`, `lscpu` (¿`nnpa`?), `python3 --version`, `docker version`, `docker compose version`. Guardar salida en `docs/vm-check.md` y capturas en `docs/screenshots/` | CC | ⬜ | — |
 | F0-BE-02 | Probar instalación en la VM (s390x) de `numpy pandas scikit-learn lightgbm shap fastapi uvicorn cryptography`. Anotar qué falla en `docs/vm-check.md` y en `DECISIONS.md` si hay que aplicar plan B | CC | ⬜ | F0-BE-01 |
 | F0-BE-03 | `infra/docker-compose.yml` + Dockerfiles con los 5 servicios "hola mundo" (FastAPI `/health`) e `infra/env.example` | APP | ⬜ | F0-COM-01 |

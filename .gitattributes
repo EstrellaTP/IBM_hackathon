@@ -1,0 +1,5 @@
+# Normalise line endings so scripts run on the LinuxONE VM even when committed from
+# Windows (core.autocrlf would otherwise check out CRLF and break bash shebangs).
+* text=auto eol=lf
+*.png binary
+*.jpg binary

@@ -7,9 +7,11 @@
 ## 0. Antes de empezar cada sesión (obligatorio)
 
 1. `git fetch origin && git status`. Trae `main` actualizado.
-2. Lee `docs/TASKS.md` (qué hay pendiente y quién lo lleva) y las últimas entradas de `docs/HANDOFF.md` (qué ha hecho el otro agente y qué está bloqueado).
-3. Coge **una** tarea que sea de tu carril (sección 1) y que no tenga dependencias pendientes. Márcala como `🟡 en curso` con tu etiqueta en `TASKS.md` y haz commit de ese cambio **antes** de empezar, para que el otro agente no la coja.
-4. Trabaja en una rama propia (sección 1.3). Al terminar: tests o comprobación, commit, push, PR a `main`, tarea a `✅ hecha` y una entrada en `HANDOFF.md`.
+2. **Lee los issues abiertos dirigidos a tu carril y atiéndelos antes que cualquier tarea nueva** (sección 1.5). `[CC]`: `gh issue list --label para-cc --state open`. `[APP]`: `gh api "repos/EstrellaTP/IBM_hackathon/issues?labels=para-app&state=open"`. Si hay alguno con `bloqueante`, va primero.
+3. Lee `docs/TASKS.md` (qué hay pendiente y quién lo lleva) y las últimas entradas de `docs/HANDOFF.md` (qué ha hecho el otro carril).
+4. Coge **una** tarea que sea de tu carril (sección 1) y que no tenga dependencias pendientes. Márcala como `🟡 en curso` con tu etiqueta en `TASKS.md` y haz commit de ese cambio **antes** de empezar, para que el otro agente no la coja.
+5. Trabaja en una rama propia (sección 1.3). Al terminar: tests o comprobación, commit, push, integración en `main`, tarea a `✅ hecha` y una entrada en `HANDOFF.md`.
+6. Repite desde el paso 1 antes de cada tarea nueva: así ves los issues que el otro carril haya abierto mientras trabajabas.
 
 ---
 
@@ -23,7 +25,7 @@
 | `[APP]` | **Claude en la app** (chat del proyecto) | Nube, sin SSH a la VM y sin acceso a webs de datos (CDC, Simula, Dryad…) | Código que no necesita la VM: contratos, frontend, código de features/modelos con tests sobre datos sintéticos, simulador, README, diagramas, `ATTRIBUTIONS.md`, revisión de PRs |
 | `[HUM]` | Personas del equipo GigaFly | Donde sea | Decisiones, grabar el vídeo, probar el móvil, revisar el lenguaje, cualquier tarea |
 
-Si una tarea necesita algo que tu carril no tiene (por ejemplo, `[APP]` necesita datos reales), **no la bloquees en silencio**: déjala en `⛔ bloqueada` con el motivo en `HANDOFF.md` y coge otra.
+Si una tarea necesita algo que tu carril no tiene (por ejemplo, `[APP]` necesita datos reales), **no la bloquees en silencio**: déjala en `⛔ bloqueada`, abre un issue para el carril que puede desbloquearla (sección 1.5) y coge otra.
 
 ### 1.2 Ficheros de coordinación
 
@@ -33,11 +35,19 @@ Si una tarea necesita algo que tu carril no tiene (por ejemplo, `[APP]` necesita
   ### [CC|APP|HUM] <hora Madrid> · <ID de tarea> · <título corto>
   - Hecho: …
   - Rama / PR: …
-  - Para el otro carril: … (qué necesitas, qué puede coger ya)
-  - Bloqueos / dudas para el equipo: …
+  - Para el otro carril: … (qué puede coger ya; las peticiones van en issues)
+  - Issues abiertos o cerrados: #…
   - Captura para el jurado: … (si aplica)
   ```
 - `docs/DECISIONS.md`: decisiones de arquitectura o de relato tomadas (y quién las tomó). Si una decisión cambia algo de este `CLAUDE.md`, actualiza también este fichero en el mismo PR.
+
+### 1.2.1 Qué va en cada sitio
+| Sitio | Para qué | Quién lo cambia |
+|---|---|---|
+| `CLAUDE.md` | Reglas estables: la idea, los requisitos, el protocolo. **No** es un canal de avisos | Solo cuando cambia una regla o una decisión de `DECISIONS.md`, en un commit propio y avisando con un issue `para-cc`/`para-app` |
+| `docs/TASKS.md` | El plan: qué tareas hay, de quién son y en qué estado están | Cualquiera, al coger o cerrar una tarea |
+| **Issues de GitHub** | Todo lo que necesita una acción de otro carril: errores encontrados al revisar, peticiones, preguntas, bloqueos | Cualquiera los abre; los cierra quien los resuelve |
+| `docs/HANDOFF.md` | Diario breve de lo terminado, para quien vuelve tras un rato fuera | Cada carril al terminar una tarea |
 
 ### 1.3 Ramas, commits y PRs
 
@@ -59,7 +69,16 @@ Si una tarea necesita algo que tu carril no tiene (por ejemplo, `[APP]` necesita
 | `frontend/*` | `[APP]` | |
 | `README.md`, `ATTRIBUTIONS.md`, `docs/*` | `[APP]` + `[HUM]` | |
 
-### 1.5 Reglas que no se negocian
+### 1.5 Issues: el canal entre carriles
+
+- **Etiquetas:** `para-cc` (Claude Code), `para-app` (Claude en la app), `para-equipo` (decisión o acción de una persona) y `bloqueante` (frena el corte vertical o una fase). Un issue lleva siempre una etiqueta de destino.
+- **Título:** `[ID de tarea] qué pasa`, por ejemplo `[F1-ML-01] El detector lanza pregunta al subir escaleras`.
+- **Cuerpo:** qué has visto, dónde (fichero y línea, commit o captura), qué esperabas, y cómo propones arreglarlo. Si es una petición, qué necesitas y para qué tarea.
+- **Al resolverlo:** el commit lleva `Fixes #<n>` en el mensaje y se deja un comentario breve con qué se hizo. Si no estás de acuerdo con el issue, contéstalo en un comentario en vez de cerrarlo.
+- **Revisión periódica de `[APP]`:** cuando `[APP]` revisa el trabajo de `[CC]` y encuentra algo, abre un issue `para-cc`; no edita el código de `[CC]` salvo que sea trivial (una errata) o que el issue lo pida.
+- Comandos: `[CC]` usa `gh` en el portátil (requiere `gh auth login` una vez). `[APP]` usa la API REST con `gh api` (la de GraphQL no está disponible en su entorno).
+
+### 1.6 Reglas que no se negocian
 
 1. **Primero el corte vertical de punta a punta** (Fase 1), luego profundidad. Una arquitectura simple que funciona vale más que una compleja sin terminar.
 2. **Los contratos de datos (sección 9) antes que los servicios.** Mientras falte una pieza, usa datos falsos que cumplan el contrato.

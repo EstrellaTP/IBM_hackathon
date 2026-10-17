@@ -1,0 +1,68 @@
+{
+  "additionalProperties": false,
+  "description": "Append-only record of every inference (AI Act traceability).",
+  "properties": {
+    "at": {
+      "format": "date-time",
+      "title": "At",
+      "type": "string"
+    },
+    "actor": {
+      "maxLength": 64,
+      "title": "Actor",
+      "type": "string"
+    },
+    "action": {
+      "maxLength": 64,
+      "title": "Action",
+      "type": "string"
+    },
+    "patient_id": {
+      "pattern": "^p_[0-9a-f]{4,32}$",
+      "title": "Patient Id",
+      "type": "string"
+    },
+    "model_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model Version"
+    },
+    "detail": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Detail",
+      "type": "object"
+    }
+  },
+  "required": [
+    "actor",
+    "action",
+    "patient_id"
+  ],
+  "title": "AuditEntry",
+  "type": "object"
+}

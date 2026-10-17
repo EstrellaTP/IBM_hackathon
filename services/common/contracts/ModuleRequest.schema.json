@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "Period": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "format": "date-time",
+          "title": "From",
+          "type": "string"
+        },
+        "to": {
+          "format": "date-time",
+          "title": "To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "title": "Period",
+      "type": "object"
+    },
+    "Suspicion": {
+      "enum": [
+        "depression"
+      ],
+      "title": "Suspicion",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Clinician dashboard -> suspicion-module. Only the requested module runs.",
+  "properties": {
+    "patient_id": {
+      "pattern": "^p_[0-9a-f]{4,32}$",
+      "title": "Patient Id",
+      "type": "string"
+    },
+    "suspicion": {
+      "$ref": "#/$defs/Suspicion"
+    },
+    "period": {
+      "$ref": "#/$defs/Period"
+    },
+    "requested_by": {
+      "default": "clinician",
+      "maxLength": 64,
+      "title": "Requested By",
+      "type": "string"
+    }
+  },
+  "required": [
+    "patient_id",
+    "suspicion",
+    "period"
+  ],
+  "title": "ModuleRequest",
+  "type": "object"
+}

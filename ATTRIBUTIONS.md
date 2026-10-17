@@ -9,7 +9,8 @@ Every open-source library, dataset and external resource used in this project. A
 - **WESAD**. Schmidt, P., Reiss, A., Duerichen, R., Marberger, C. and Van Laerhoven, K. (2018). *Introducing WESAD, a multimodal dataset for Wearable Stress and Affect Detection*. ICMI 2018. https://ubi29.informatik.uni-siegen.de/usi/data_wesad.html
 
 ## Libraries
-_(to be completed as dependencies are added)_
+- **Pydantic** (MIT) — data contracts. https://github.com/pydantic/pydantic
+- **pytest** (MIT) — tests. https://github.com/pytest-dev/pytest
 
 ## Infrastructure
 - IBM LinuxONE Community Cloud (Marist College). https://linuxone.cloud.marist.edu/

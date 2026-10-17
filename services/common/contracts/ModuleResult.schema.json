@@ -1,0 +1,225 @@
+{
+  "$defs": {
+    "DataQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "valid_days": {
+          "minimum": 0,
+          "title": "Valid Days",
+          "type": "integer"
+        },
+        "missing_hours": {
+          "minimum": 0,
+          "title": "Missing Hours",
+          "type": "number"
+        }
+      },
+      "required": [
+        "valid_days",
+        "missing_hours"
+      ],
+      "title": "DataQuality",
+      "type": "object"
+    },
+    "MetricEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/MetricName"
+        },
+        "unit": {
+          "default": "",
+          "title": "Unit",
+          "type": "string"
+        },
+        "patient_series": {
+          "items": {
+            "$ref": "#/$defs/SeriesPoint"
+          },
+          "title": "Patient Series",
+          "type": "array"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "is_evidence": {
+          "default": false,
+          "title": "Is Evidence",
+          "type": "boolean"
+        },
+        "shap": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shap"
+        },
+        "available": {
+          "default": true,
+          "title": "Available",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "MetricEvidence",
+      "type": "object"
+    },
+    "MetricName": {
+      "enum": [
+        "sleep",
+        "circadian_rhythm",
+        "daytime_activity",
+        "heart_rate"
+      ],
+      "title": "MetricName",
+      "type": "string"
+    },
+    "ModuleOutcome": {
+      "enum": [
+        "compatible",
+        "not_compatible"
+      ],
+      "title": "ModuleOutcome",
+      "type": "string"
+    },
+    "ReferenceRange": {
+      "additionalProperties": false,
+      "description": "Percentiles of the metric in NHANES for the patient's sex and age group.",
+      "properties": {
+        "p10": {
+          "title": "P10",
+          "type": "number"
+        },
+        "p50": {
+          "title": "P50",
+          "type": "number"
+        },
+        "p90": {
+          "title": "P90",
+          "type": "number"
+        },
+        "group": {
+          "description": "e.g. 'F_30-39'",
+          "title": "Group",
+          "type": "string"
+        }
+      },
+      "required": [
+        "p10",
+        "p50",
+        "p90",
+        "group"
+      ],
+      "title": "ReferenceRange",
+      "type": "object"
+    },
+    "SeriesPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "day": {
+          "description": "ISO date, e.g. '2026-10-17'",
+          "title": "Day",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "day"
+      ],
+      "title": "SeriesPoint",
+      "type": "object"
+    },
+    "Suspicion": {
+      "enum": [
+        "depression"
+      ],
+      "title": "Suspicion",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "suspicion-module -> evidence-api -> dashboard. No narrative text, ever.",
+  "properties": {
+    "patient_id": {
+      "pattern": "^p_[0-9a-f]{4,32}$",
+      "title": "Patient Id",
+      "type": "string"
+    },
+    "suspicion": {
+      "$ref": "#/$defs/Suspicion"
+    },
+    "result": {
+      "$ref": "#/$defs/ModuleOutcome"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "model_version": {
+      "title": "Model Version",
+      "type": "string"
+    },
+    "data_quality": {
+      "$ref": "#/$defs/DataQuality"
+    },
+    "metrics": {
+      "items": {
+        "$ref": "#/$defs/MetricEvidence"
+      },
+      "maxItems": 4,
+      "title": "Metrics",
+      "type": "array"
+    },
+    "episodes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Episodes",
+      "type": "array"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "patient_id",
+    "suspicion",
+    "result",
+    "confidence",
+    "model_version",
+    "data_quality",
+    "metrics"
+  ],
+  "title": "ModuleResult",
+  "type": "object"
+}

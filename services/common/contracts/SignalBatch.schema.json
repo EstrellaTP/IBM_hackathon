@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "Device": {
+      "enum": [
+        "e4",
+        "wesad",
+        "polar",
+        "sim"
+      ],
+      "title": "Device",
+      "type": "string"
+    },
+    "Sample": {
+      "additionalProperties": false,
+      "description": "One reading from the band. Accelerometer in g, HR in bpm, EDA in \u00b5S.",
+      "properties": {
+        "t": {
+          "format": "date-time",
+          "title": "T",
+          "type": "string"
+        },
+        "hr": {
+          "anyOf": [
+            {
+              "maximum": 250,
+              "minimum": 20,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hr"
+        },
+        "acc_x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Acc X"
+        },
+        "acc_y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Acc Y"
+        },
+        "acc_z": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Acc Z"
+        },
+        "eda": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eda"
+        }
+      },
+      "required": [
+        "t"
+      ],
+      "title": "Sample",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Phone or simulator -> ingest-api. Sent roughly every minute.",
+  "properties": {
+    "patient_id": {
+      "pattern": "^p_[0-9a-f]{4,32}$",
+      "title": "Patient Id",
+      "type": "string"
+    },
+    "device": {
+      "$ref": "#/$defs/Device"
+    },
+    "sent_at": {
+      "format": "date-time",
+      "title": "Sent At",
+      "type": "string"
+    },
+    "samples": {
+      "items": {
+        "$ref": "#/$defs/Sample"
+      },
+      "maxItems": 20000,
+      "minItems": 1,
+      "title": "Samples",
+      "type": "array"
+    }
+  },
+  "required": [
+    "patient_id",
+    "device",
+    "sent_at",
+    "samples"
+  ],
+  "title": "SignalBatch",
+  "type": "object"
+}

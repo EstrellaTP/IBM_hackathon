@@ -1,0 +1,9 @@
+{
+  "patient_id": "p_7f3a2b",
+  "suspicion": "depression",
+  "period": {
+    "from": "2026-10-05T21:53:37Z",
+    "to": "2026-10-17T21:53:37Z"
+  },
+  "requested_by": "clinician"
+}

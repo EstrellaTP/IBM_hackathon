@@ -1,0 +1,144 @@
+{
+  "$defs": {
+    "DetectionMethod": {
+      "enum": [
+        "zscore",
+        "iforest",
+        "fixed_rule"
+      ],
+      "title": "DetectionMethod",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "normal",
+        "extreme"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "StageTimestamps": {
+      "additionalProperties": false,
+      "description": "Per-stage timestamps used to separate network latency from server latency.",
+      "properties": {
+        "sample_t": {
+          "format": "date-time",
+          "title": "Sample T",
+          "type": "string"
+        },
+        "ingested_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ingested At"
+        },
+        "inferred_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inferred At"
+        },
+        "pushed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pushed At"
+        },
+        "received_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Received At"
+        }
+      },
+      "required": [
+        "sample_t"
+      ],
+      "title": "StageTimestamps",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Detector -> store and phone (WebSocket).",
+  "properties": {
+    "episode_id": {
+      "pattern": "^e_[0-9a-f]{4,32}$",
+      "title": "Episode Id",
+      "type": "string"
+    },
+    "patient_id": {
+      "pattern": "^p_[0-9a-f]{4,32}$",
+      "title": "Patient Id",
+      "type": "string"
+    },
+    "start": {
+      "format": "date-time",
+      "title": "Start",
+      "type": "string"
+    },
+    "detected_at": {
+      "format": "date-time",
+      "title": "Detected At",
+      "type": "string"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity",
+      "default": "normal"
+    },
+    "score": {
+      "title": "Score",
+      "type": "number"
+    },
+    "method": {
+      "$ref": "#/$defs/DetectionMethod"
+    },
+    "features": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Features",
+      "type": "object"
+    },
+    "timestamps": {
+      "$ref": "#/$defs/StageTimestamps"
+    }
+  },
+  "required": [
+    "patient_id",
+    "start",
+    "detected_at",
+    "score",
+    "method",
+    "timestamps"
+  ],
+  "title": "EpisodeEvent",
+  "type": "object"
+}

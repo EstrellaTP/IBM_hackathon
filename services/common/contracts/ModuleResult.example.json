@@ -1,0 +1,215 @@
+{
+  "patient_id": "p_7f3a2b",
+  "suspicion": "depression",
+  "result": "compatible",
+  "confidence": 0.78,
+  "model_version": "dummy-0",
+  "data_quality": {
+    "valid_days": 12,
+    "missing_hours": 6.5
+  },
+  "metrics": [
+    {
+      "name": "daytime_activity",
+      "unit": "z (within-person)",
+      "patient_series": [
+        {
+          "day": "2026-10-06",
+          "value": -1.4
+        },
+        {
+          "day": "2026-10-07",
+          "value": -1.2
+        },
+        {
+          "day": "2026-10-08",
+          "value": -0.9
+        },
+        {
+          "day": "2026-10-09",
+          "value": -1.5
+        },
+        {
+          "day": "2026-10-10",
+          "value": -1.3
+        },
+        {
+          "day": "2026-10-11",
+          "value": -0.4
+        },
+        {
+          "day": "2026-10-12",
+          "value": -1.1
+        },
+        {
+          "day": "2026-10-13",
+          "value": -1.6
+        },
+        {
+          "day": "2026-10-14",
+          "value": -1.2
+        },
+        {
+          "day": "2026-10-15",
+          "value": -1.0
+        },
+        {
+          "day": "2026-10-16",
+          "value": -1.3
+        },
+        {
+          "day": "2026-10-17",
+          "value": -0.8
+        }
+      ],
+      "reference": {
+        "p10": -1.0,
+        "p50": 0.0,
+        "p90": 1.0,
+        "group": "F_30-39"
+      },
+      "is_evidence": true,
+      "shap": -0.21,
+      "available": true
+    },
+    {
+      "name": "sleep",
+      "unit": "awakenings/night",
+      "patient_series": [
+        {
+          "day": "2026-10-06",
+          "value": 7.0
+        },
+        {
+          "day": "2026-10-07",
+          "value": 8.0
+        },
+        {
+          "day": "2026-10-08",
+          "value": 5.0
+        },
+        {
+          "day": "2026-10-09",
+          "value": 9.0
+        },
+        {
+          "day": "2026-10-10",
+          "value": 7.0
+        },
+        {
+          "day": "2026-10-11",
+          "value": 4.0
+        },
+        {
+          "day": "2026-10-12",
+          "value": 8.0
+        },
+        {
+          "day": "2026-10-13",
+          "value": 9.0
+        },
+        {
+          "day": "2026-10-14",
+          "value": 7.0
+        },
+        {
+          "day": "2026-10-15",
+          "value": 6.0
+        },
+        {
+          "day": "2026-10-16",
+          "value": 8.0
+        },
+        {
+          "day": "2026-10-17",
+          "value": 7.0
+        }
+      ],
+      "reference": {
+        "p10": 1.0,
+        "p50": 3.0,
+        "p90": 6.0,
+        "group": "F_30-39"
+      },
+      "is_evidence": true,
+      "shap": -0.15,
+      "available": true
+    },
+    {
+      "name": "circadian_rhythm",
+      "unit": "IS (0-1)",
+      "patient_series": [
+        {
+          "day": "2026-10-06",
+          "value": 0.5
+        },
+        {
+          "day": "2026-10-07",
+          "value": 0.48
+        },
+        {
+          "day": "2026-10-08",
+          "value": 0.52
+        },
+        {
+          "day": "2026-10-09",
+          "value": 0.47
+        },
+        {
+          "day": "2026-10-10",
+          "value": 0.5
+        },
+        {
+          "day": "2026-10-11",
+          "value": 0.55
+        },
+        {
+          "day": "2026-10-12",
+          "value": 0.49
+        },
+        {
+          "day": "2026-10-13",
+          "value": 0.46
+        },
+        {
+          "day": "2026-10-14",
+          "value": 0.5
+        },
+        {
+          "day": "2026-10-15",
+          "value": 0.51
+        },
+        {
+          "day": "2026-10-16",
+          "value": 0.48
+        },
+        {
+          "day": "2026-10-17",
+          "value": 0.5
+        }
+      ],
+      "reference": {
+        "p10": 0.35,
+        "p50": 0.55,
+        "p90": 0.75,
+        "group": "F_30-39"
+      },
+      "is_evidence": false,
+      "shap": -0.04,
+      "available": true
+    },
+    {
+      "name": "heart_rate",
+      "unit": "bpm (resting)",
+      "patient_series": [],
+      "reference": null,
+      "is_evidence": false,
+      "shap": null,
+      "available": false
+    }
+  ],
+  "episodes": [
+    "e_9c1d4e"
+  ],
+  "generated_at": "2026-10-17T21:53:37.422039Z"
+}

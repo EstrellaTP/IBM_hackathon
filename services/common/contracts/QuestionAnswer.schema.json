@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "Activity": {
+      "enum": [
+        "work",
+        "rest",
+        "social",
+        "commute",
+        "other"
+      ],
+      "title": "Activity",
+      "type": "string"
+    },
+    "SafetyAction": {
+      "enum": [
+        "call_112_simulated",
+        "notify_contact_simulated"
+      ],
+      "title": "SafetyAction",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Phone -> store. The patient's in-the-moment answer, linked to its episode.",
+  "properties": {
+    "episode_id": {
+      "pattern": "^e_[0-9a-f]{4,32}$",
+      "title": "Episode Id",
+      "type": "string"
+    },
+    "activity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Activity"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "activity_text": {
+      "anyOf": [
+        {
+          "maxLength": 280,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Activity Text"
+    },
+    "mood_1_5": {
+      "anyOf": [
+        {
+          "maximum": 5,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mood 1 5"
+    },
+    "safety_action": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SafetyAction"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "answered_at": {
+      "format": "date-time",
+      "title": "Answered At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "episode_id",
+    "answered_at"
+  ],
+  "title": "QuestionAnswer",
+  "type": "object"
+}

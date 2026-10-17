@@ -1,0 +1,21 @@
+{
+  "episode_id": "e_9c1d4e",
+  "patient_id": "p_7f3a2b",
+  "start": "2026-10-17T21:52:37Z",
+  "detected_at": "2026-10-17T21:53:37Z",
+  "severity": "normal",
+  "score": 3.4,
+  "method": "zscore",
+  "features": {
+    "hr_z": 3.4,
+    "acc_mag_z": 0.2,
+    "eda_z": 2.1
+  },
+  "timestamps": {
+    "sample_t": "2026-10-17T21:53:37Z",
+    "ingested_at": "2026-10-17T21:53:37.110000Z",
+    "inferred_at": "2026-10-17T21:53:37.122000Z",
+    "pushed_at": "2026-10-17T21:53:37.125000Z",
+    "received_at": null
+  }
+}

@@ -56,8 +56,8 @@ GRAVITY_G = 1.0
 class DetectorConfig:
     """Tunable parameters of the detector.
 
-    Defaults are deliberately conservative starting points; task F1-ML-02 tunes
-    them on real WESAD data and records the chosen values in DECISIONS.md.
+    Defaults were tuned on real WESAD data in task F1-ML-02 (see DECISIONS.md and
+    ``ml/reports/detector_wesad.md``).
 
     Attributes:
         window_seconds: Length of the signal summarised at each step.
@@ -79,20 +79,32 @@ class DetectorConfig:
         cooldown_seconds: Minimum time between two questions to the same patient.
         min_samples_per_window: Windows with fewer heart-rate samples are skipped
             as low quality (e.g. the band lost contact).
+        movement_lookback_seconds: Movement in this many seconds before the
+            window still explains a high heart rate, because heart rate stays up
+            for a few minutes after exercise (recovery). 0 checks only the current
+            window (v1 behaviour). Tuned on WESAD in F1-ML-02.
+        eda_z_min: Minimum EDA z-score for an unusual heart rate to count as an
+            episode when EDA is available (stress raises both; HR alone also rises
+            with posture or talking). ``-inf`` disables the requirement.
     """
 
     window_seconds: float = 60.0
     step_seconds: float = 10.0
     warmup_windows: int = 30
     baseline_alpha: float = 0.02
-    hr_z_threshold: float = 3.0
+    # The four values below were chosen on real WESAD data with leave-one-subject-out
+    # (F1-ML-02, ml/reports/detector_wesad.md): the same values won in 12 of 15 folds.
+    # v1 used hr_z_threshold=3.0, activity_z_max=1.0, no look-back and no EDA check.
+    hr_z_threshold: float = 2.0
     hr_z_extreme: float = 6.0
-    activity_z_max: float = 1.0
+    activity_z_max: float = 0.5
     min_std_hr_bpm: float = 2.0
     min_std_activity_g: float = 0.005
     min_std_eda_us: float = 0.05
     cooldown_seconds: float = 600.0
     min_samples_per_window: int = 10
+    movement_lookback_seconds: float = 180.0
+    eda_z_min: float = 1.0
 
 
 @dataclass
@@ -209,6 +221,9 @@ class PatientDetector:
     _calm_windows: int = field(default=0, init=False)
     _next_evaluation: datetime | None = field(default=None, init=False, repr=False)
     _last_episode_at: datetime | None = field(default=None, init=False, repr=False)
+    _recent_activity_z: deque[tuple[datetime, float]] = field(
+        default_factory=deque, init=False, repr=False
+    )
 
     def __post_init__(self) -> None:
         """Create the three baselines with the configured weight."""
@@ -273,7 +288,9 @@ class PatientDetector:
         )
 
         unusual_heart_rate = hr_z >= cfg.hr_z_threshold
-        explained_by_movement = activity_z > cfg.activity_z_max
+        explained_by_movement = (
+            self._recent_max_activity_z(summary.end, activity_z) > cfg.activity_z_max
+        )
 
         if not self.baseline_ready or not unusual_heart_rate:
             # Only calm windows feed the baseline; unusual ones (episodes or
@@ -283,6 +300,9 @@ class PatientDetector:
             return None
         if explained_by_movement:
             logger.debug("patient=%s high HR explained by movement", self.patient_id)
+            return None
+        if eda_z is not None and eda_z < cfg.eda_z_min:
+            logger.debug("patient=%s high HR without EDA response", self.patient_id)
             return None
         if self._in_cooldown(summary.end):
             return None
@@ -310,6 +330,18 @@ class PatientDetector:
             event.severity.value,
         )
         return event
+
+    def _recent_max_activity_z(self, now: datetime, activity_z: float) -> float:
+        """Record this window's activity z-score and return the recent maximum.
+
+        The maximum covers the current window and every window that ended within
+        ``movement_lookback_seconds`` before it.
+        """
+        lookback = timedelta(seconds=self.config.movement_lookback_seconds)
+        self._recent_activity_z.append((now, activity_z))
+        while self._recent_activity_z and self._recent_activity_z[0][0] < now - lookback:
+            self._recent_activity_z.popleft()
+        return max(z for _, z in self._recent_activity_z)
 
     def _update_baseline(self, summary: WindowSummary) -> None:
         assert summary.heart_rate is not None  # guaranteed by _evaluate

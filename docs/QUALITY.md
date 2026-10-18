@@ -8,7 +8,7 @@ Reglas:
 - Si una casilla es imposible (por ejemplo, la VM no tiene `nnpa`), se marca `[~]` con el motivo y un enlace a `DECISIONS.md`.
 
 ## A. Funciona (sin esto no hay demo)
-- [ ] [CC] **Corte vertical en la VM**: simulador → ingesta → detector → pregunta en el móvil → respuesta → panel, todo en LinuxONE. Verificación: `scripts/smoke_test.sh --e2e` en verde contra la VM + captura. (R3, R4)
+- [x] [CC] **Corte vertical en la VM**: simulador → ingesta → detector → pregunta en el móvil → respuesta → panel, todo en LinuxONE. Verificación: `scripts/smoke_test.sh --e2e` en verde contra la VM + captura. (R3, R4) → `E2E_BASE_URL=https://148.100.99.58:8443 scripts/smoke_test.sh --e2e` en verde desde internet (el script hace de móvil por WSS): [`docs/screenshots/e2e_vertical_slice.txt`](screenshots/e2e_vertical_slice.txt); con WESAD real en la VM: [`inference_logs_wesad.txt`](screenshots/inference_logs_wesad.txt). Prueba con móvil real: F1-HUM-01
 - [ ] [APP] **Tests en verde**: `scripts/smoke_test.sh` sin fallos en `main`. (R3)
 - [x] [CC] **Despliegue con un comando**: `docker compose up -d` desde un clon limpio levanta los 5 servicios en la VM. Verificación: `docker ps` + captura. (R3) → `scripts/deploy_vm.sh` desde un directorio vacío de la VM, 2 min 11 s, 6/6 *healthy*: [`docs/screenshots/deploy_one_command.txt`](screenshots/deploy_one_command.txt), [`docs/screenshots/docker_ps.txt`](screenshots/docker_ps.txt)
 - [x] [CC] **Big-endian comprobado**: la misma entrada da la misma predicción en el portátil y en la VM (diferencia < 1e-6). Verificación: `ml/reports/endianness_check.md`. (R3) → diferencia **0,0** (bit a bit) en 50 filas, modelo desplegado y LightGBM en texto: [`ml/reports/endianness_check.md`](../ml/reports/endianness_check.md)
@@ -25,7 +25,7 @@ Reglas:
 ## C. LinuxONE de verdad (criterio 3)
 - [ ] [CC] **Benchmark de latencia**: p50/p99 en servidor frente a 1/10/100/1.000 pacientes en `ml/reports/benchmark.csv` + gráfica. (R3, AI)
 - [ ] [CC] **`nnpa`**: comparación con y sin acelerador, o `[~]` si no existe. (R3)
-- [ ] [CC] **Capturas** en `docs/screenshots/`: VM, `uname -m`, `lscpu`, `docker ps`, logs de inferencia. (R3)
+- [x] [CC] **Capturas** en `docs/screenshots/`: VM, `uname -m`, `lscpu`, `docker ps`, logs de inferencia. (R3) → transcripciones de terminal: [`vm_check.txt`](screenshots/vm_check.txt) (z17, `uname -m`, `lscpu`, NNPA, CPACF), [`docker_ps.txt`](screenshots/docker_ps.txt), [`deploy_one_command.txt`](screenshots/deploy_one_command.txt), [`inference_logs_wesad.txt`](screenshots/inference_logs_wesad.txt)
 - [ ] [APP] **Cifrado y auditoría**: campos sensibles cifrados en reposo, TLS, registro de auditoría append-only con test. (R3)
 
 ## D. Producto que se entiende (criterios 1 y 4)

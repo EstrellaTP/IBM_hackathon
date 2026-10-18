@@ -103,6 +103,15 @@ def list_episodes(
     return store.list_episodes(patient_id)
 
 
+@router.get("/episodes/{episode_id}", response_model=EpisodeEvent)
+def get_episode(episode_id: str, store: StoreDep) -> EpisodeEvent:
+    """Return one episode."""
+    episode = store.get_episode(episode_id)
+    if episode is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown episode {episode_id}")
+    return episode
+
+
 @router.post("/answers", status_code=status.HTTP_201_CREATED, response_model=StoredAnswer)
 def store_answer(answer: QuestionAnswer, store: StoreDep) -> StoredAnswer:
     """Store the patient's answer to an episode."""

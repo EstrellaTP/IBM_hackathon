@@ -230,6 +230,14 @@ class EncryptedStore:
             ).fetchall()
         return [EpisodeEvent.model_validate_json(self._decrypt(row[0])) for row in rows]
 
+    def get_episode(self, episode_id: str) -> EpisodeEvent | None:
+        """Return one episode, or ``None`` if it does not exist."""
+        with self._lock:
+            row = self._db.execute(
+                "SELECT payload FROM episodes WHERE episode_id = ?", (episode_id,)
+            ).fetchone()
+        return EpisodeEvent.model_validate_json(self._decrypt(row[0])) if row else None
+
     def latest_answers(self, episode_ids: Iterable[str]) -> dict[str, QuestionAnswer]:
         """Return the latest answer of each episode that has one."""
         ids = list(episode_ids)

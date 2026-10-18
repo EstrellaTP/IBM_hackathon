@@ -18,6 +18,7 @@ import argparse
 import hashlib
 import json
 import logging
+import re
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -27,6 +28,7 @@ import httpx
 from ml.data import loaders
 from ml.features import hourly
 from ml.models.train import DEMO_HOLDOUT
+from services.common.schemas import PATIENT_ID_PATTERN
 
 logger = logging.getLogger("import_depresjon")
 
@@ -35,7 +37,11 @@ DEMO_MAPPING_PATH = Path.home() / "demo_patients.json"
 
 def pseudonym(person_id: str) -> str:
     """Stable pseudonymous id for a demo person (hex, matches PATIENT_ID_PATTERN)."""
-    return "p_demo" + hashlib.sha256(person_id.encode()).hexdigest()[:8]
+    # "dec0" (hex) marks demo pseudonyms; the whole id must match PATIENT_ID_PATTERN.
+    patient_id = "p_dec0" + hashlib.sha256(person_id.encode()).hexdigest()[:8]
+    if not re.fullmatch(PATIENT_ID_PATTERN, patient_id):
+        raise ValueError(f"invalid pseudonym {patient_id}")
+    return patient_id
 
 
 def import_person(client: httpx.Client, person_id: str, scores) -> dict:

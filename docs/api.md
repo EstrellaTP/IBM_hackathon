@@ -50,11 +50,22 @@ closing an idle connection; the phone can ignore it.
 |---|---|---|---|
 | `POST` | `/api/v1/module-runs` | `ModuleRequest` | `ModuleResult` |
 
+`ModuleResult.metrics` always has four entries: `sleep`, `circadian_rhythm`,
+`daytime_activity` (daily values in `patient_series`, NHANES band in `reference` for the
+patient's sex and age group, `is_evidence` on at most two, `shap` = summed log-odds
+contribution) and `heart_rate` with `available: false` (no HR in actigraphy/NHANES).
+`confidence` is the calibrated probability of the stated outcome; the decision threshold
+is the training prevalence (0.42), so a borderline "compatible" can have a confidence
+below 0.5. Errors: `404` no recording for the patient, `422` fewer than 4 valid days,
+`503` model not trained on this machine.
+
 ## Internal only (compose network, not routed by the gateway)
 
 - `detector`: `POST /api/v1/detections` (`SignalBatch` → `[EpisodeEvent]`).
 - `store`: `POST /api/v1/signal-batches`, `POST /api/v1/episodes`, `POST /api/v1/answers`,
   `POST /api/v1/audit-entries`, `GET /api/v1/episodes?patient_id=`,
-  `GET /api/v1/audit-entries?patient_id=`.
+  `GET /api/v1/audit-entries?patient_id=`, `PUT|GET /api/v1/patients/{id}/profile`,
+  `POST|GET /api/v1/patients/{id}/activity-hours`. Also on `127.0.0.1:8001` of the VM
+  for host tools (`tools/import_depresjon.py`).
 
 Every service also answers `GET /health` and serves OpenAPI at `/docs` (internal).

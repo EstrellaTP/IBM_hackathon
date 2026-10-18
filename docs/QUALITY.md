@@ -11,7 +11,7 @@ Reglas:
 - [ ] [CC] **Corte vertical en la VM**: simulador → ingesta → detector → pregunta en el móvil → respuesta → panel, todo en LinuxONE. Verificación: `scripts/smoke_test.sh --e2e` en verde contra la VM + captura. (R3, R4)
 - [ ] [APP] **Tests en verde**: `scripts/smoke_test.sh` sin fallos en `main`. (R3)
 - [x] [CC] **Despliegue con un comando**: `docker compose up -d` desde un clon limpio levanta los 5 servicios en la VM. Verificación: `docker ps` + captura. (R3) → `scripts/deploy_vm.sh` desde un directorio vacío de la VM, 2 min 11 s, 6/6 *healthy*: [`docs/screenshots/deploy_one_command.txt`](screenshots/deploy_one_command.txt), [`docs/screenshots/docker_ps.txt`](screenshots/docker_ps.txt)
-- [ ] [CC] **Big-endian comprobado**: la misma entrada da la misma predicción en el portátil y en la VM (diferencia < 1e-6). Verificación: `ml/reports/endianness_check.md`. (R3)
+- [x] [CC] **Big-endian comprobado**: la misma entrada da la misma predicción en el portátil y en la VM (diferencia < 1e-6). Verificación: `ml/reports/endianness_check.md`. (R3) → diferencia **0,0** (bit a bit) en 50 filas, modelo desplegado y LightGBM en texto: [`ml/reports/endianness_check.md`](../ml/reports/endianness_check.md)
 
 ## B. Rigor de datos y modelos (es un datathon)
 - [ ] [CC] **Módulo de depresión validado por persona**: MCC, F1, sensibilidad, especificidad y AUC con `GroupKFold` (NHANES) y LOSO (DEPRESJON) en `ml/reports/metrics.md`. (R3, AI)

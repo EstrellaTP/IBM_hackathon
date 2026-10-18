@@ -1,0 +1,169 @@
+"""Build the per-person feature tables from the real data (runs on the VM).
+
+::
+
+    python3 -m ml.features.build            # writes ml/data/processed/*.csv (gitignored)
+                                             # and ml/reports/features_summary.md
+
+Outputs one row per person:
+
+* NHANES G + H adults (18+) with a complete PHQ-9 and accelerometry, with
+  ``label`` = PHQ-9 >= 10 ("depressive symptoms"), ``sex``, ``age_years``.
+* DEPRESJON patients and controls, with ``label`` = patient, ``sex``, ``age_group``,
+  ``madrs_start``.
+
+The summary report only holds group-level statistics (means and Cohen's d), so it can
+be committed; per-person tables stay on the VM.
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from ml.data import loaders
+from ml.features import circadian, hourly
+
+logger = logging.getLogger(__name__)
+
+PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+ADULT_AGE_YEARS = 18
+# A recording needs at least this many valid days to be used (common minimum in
+# actigraphy studies; NHANES asked for 7 days, DEPRESJON recorded about 2 weeks).
+MIN_VALID_DAYS = 4
+
+
+def _features_per_person(frame: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for person_id, person in frame.groupby("person_id", sort=False):
+        rows.append({"person_id": person_id, **circadian.person_features(person)})
+    return pd.DataFrame(rows)
+
+
+def build_nhanes(cycles: tuple[str, ...] = ("G", "H")) -> pd.DataFrame:
+    """Feature table for NHANES adults with complete PHQ-9 and accelerometry."""
+    tables = []
+    for cycle in cycles:
+        demographics = loaders.load_nhanes_demographics(cycle)
+        phq9 = loaders.load_nhanes_phq9(cycle)
+        pax = loaders.load_nhanes_pax_hourly(cycle)
+        people = demographics[demographics["age_years"] >= ADULT_AGE_YEARS].merge(phq9, on="seqn")
+        pax = pax[pax["seqn"].isin(people["seqn"])]
+        features = _features_per_person(hourly.nhanes_hourly(pax, cycle))
+        people = people.assign(person_id="nhanes_" + cycle + "_" + people["seqn"].astype(str))
+        table = people.merge(features, on="person_id")
+        table["cycle"] = cycle
+        table["label"] = table["depressive_symptoms"].astype(int)
+        tables.append(table)
+        logger.info("NHANES %s: %d people with features", cycle, len(table))
+    return pd.concat(tables, ignore_index=True)
+
+
+def build_depresjon() -> pd.DataFrame:
+    """Feature table for DEPRESJON patients and controls."""
+    scores = loaders.load_depresjon_scores()
+    frames = [
+        hourly.depresjon_hourly(loaders.load_depresjon_activity(person), person)
+        for person in scores["person_id"]
+    ]
+    features = _features_per_person(pd.concat(frames, ignore_index=True))
+    table = scores.merge(features, on="person_id")
+    table["label"] = (table["group"] == "condition").astype(int)
+    return table
+
+
+def cohens_d(positive: pd.Series, negative: pd.Series) -> float:
+    """Standardised mean difference (positive minus negative), pooled SD."""
+    positive, negative = positive.dropna(), negative.dropna()
+    if len(positive) < 2 or len(negative) < 2:
+        return float("nan")
+    pooled = np.sqrt(
+        ((len(positive) - 1) * positive.var() + (len(negative) - 1) * negative.var())
+        / (len(positive) + len(negative) - 2)
+    )
+    return float((positive.mean() - negative.mean()) / pooled) if pooled > 0 else float("nan")
+
+
+def summary_report(nhanes: pd.DataFrame, depresjon: pd.DataFrame) -> str:
+    """Group means and Cohen's d per feature in both datasets."""
+    rows = []
+    for feature in circadian.FEATURE_COLUMNS:
+        if feature == "valid_days":
+            continue
+        row = {"feature": feature}
+        for name, table in (("nhanes", nhanes), ("depresjon", depresjon)):
+            positive = table.loc[table["label"] == 1, feature]
+            negative = table.loc[table["label"] == 0, feature]
+            row[f"{name}_d"] = cohens_d(positive, negative)
+        row["same_direction"] = bool(np.sign(row["nhanes_d"]) == np.sign(row["depresjon_d"]))
+        rows.append(row)
+    effects = pd.DataFrame(rows)
+    counts = pd.DataFrame(
+        [
+            {
+                "dataset": "NHANES G+H (label = PHQ-9 >= 10)",
+                "people": len(nhanes),
+                "positive": int(nhanes["label"].sum()),
+                "valid_days_median": nhanes["valid_days"].median(),
+            },
+            {
+                "dataset": "DEPRESJON (label = patient)",
+                "people": len(depresjon),
+                "positive": int(depresjon["label"].sum()),
+                "valid_days_median": depresjon["valid_days"].median(),
+            },
+        ]
+    )
+    return "\n".join(
+        [
+            "# Activity features on the real datasets",
+            "",
+            "Generated by `python3 -m ml.features.build` on LinuxONE. Features per person "
+            f"from the hourly activity series (recordings with >= {MIN_VALID_DAYS} valid "
+            "days); definitions in `ml/features/README.md`.",
+            "",
+            counts.to_markdown(index=False, floatfmt=".1f"),
+            "",
+            "## Effect sizes (Cohen's d, positive class minus negative class)",
+            "",
+            "`same_direction` shows whether a feature moves the same way with depressive "
+            "symptoms in the population sample (NHANES) and with a clinical depression "
+            "diagnosis (DEPRESJON); only those features can be expected to transfer from "
+            "training on NHANES to testing on DEPRESJON.",
+            "",
+            effects.to_markdown(index=False, floatfmt=".2f"),
+            "",
+        ]
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Build both tables, write them and the summary report."""
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--out-dir", type=Path, default=PROCESSED_DIR)
+    parser.add_argument("--reports-dir", type=Path, default=REPORTS_DIR)
+    args = parser.parse_args(argv)
+    nhanes = build_nhanes()
+    depresjon = build_depresjon()
+    nhanes = nhanes[nhanes["valid_days"] >= MIN_VALID_DAYS]
+    depresjon = depresjon[depresjon["valid_days"] >= MIN_VALID_DAYS]
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    nhanes.to_csv(args.out_dir / "features_nhanes.csv", index=False)
+    depresjon.to_csv(args.out_dir / "features_depresjon.csv", index=False)
+    args.reports_dir.mkdir(parents=True, exist_ok=True)
+    (args.reports_dir / "features_summary.md").write_text(
+        summary_report(nhanes, depresjon), encoding="utf-8"
+    )
+    logger.info("NHANES %d people, DEPRESJON %d people", len(nhanes), len(depresjon))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

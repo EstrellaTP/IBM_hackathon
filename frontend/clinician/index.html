@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Holter · Clinician</title>
+    <link rel="stylesheet" href="../shared/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-header">
+        <h1>Mental health Holter · Clinician view</h1>
+        <p class="muted" id="last-updated" aria-live="polite">Not loaded yet</p>
+      </header>
+
+      <p class="notice">
+        This view shows signals and the patient's own answers. It does not decide anything:
+        every decision remains with the clinician.
+      </p>
+
+      <form id="patient-form" class="card" aria-label="Select patient">
+        <label for="patient-input"><strong>Patient (pseudonymous id)</strong></label>
+        <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap">
+          <input
+            id="patient-input"
+            class="text-input"
+            style="flex: 1 1 220px"
+            pattern="p_[0-9a-f]{4,32}"
+            required
+            autocomplete="off"
+          />
+          <button class="button button--primary" type="submit">Show episodes</button>
+        </div>
+      </form>
+
+      <section class="card" aria-labelledby="timeline-title">
+        <h2 id="timeline-title">Episodes and answers</h2>
+        <p class="muted">
+          An episode is a moment when the heart rate rose above this patient's own baseline
+          and movement did not explain it. The patient was asked at that moment.
+        </p>
+        <p id="summary" class="muted"></p>
+        <p id="load-error" class="notice notice--alert" role="alert" hidden></p>
+        <ol id="timeline" class="timeline" aria-live="polite"></ol>
+      </section>
+    </main>
+    <script type="module" src="clinician.js"></script>
+  </body>
+</html>

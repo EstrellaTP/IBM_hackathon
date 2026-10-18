@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1d5fa8" />
+    <title>Holter · Patient</title>
+    <link rel="stylesheet" href="../shared/styles.css" />
+  </head>
+  <body>
+    <main class="page page--narrow">
+      <header class="page-header">
+        <h1>Mental health Holter</h1>
+        <p class="muted" aria-live="polite">
+          <span id="connection-dot" class="status-dot" aria-hidden="true"></span>
+          <span id="connection-text">Connecting…</span>
+        </p>
+      </header>
+
+      <p id="replay-notice" class="notice" hidden>
+        Demo: the signal comes from recorded WESAD data replayed in real time, not from a
+        live band.
+      </p>
+
+      <!-- Idle state: nothing to answer. -->
+      <section id="idle-card" class="card" aria-labelledby="idle-title">
+        <h2 id="idle-title">Recording</h2>
+        <p>
+          Your band is sending data. If something unusual for you happens, a short question
+          will appear here. It takes less than 10 seconds to answer.
+        </p>
+        <p class="muted mono">Patient <span id="patient-id"></span></p>
+      </section>
+
+      <!-- Safety protocol: shown only for extreme episodes (CLAUDE.md section 5.4). -->
+      <section id="safety-card" class="card" aria-labelledby="safety-title" hidden>
+        <h2 id="safety-title">Are you OK?</h2>
+        <p>Your band picked up a very strong change. You decide what to do.</p>
+        <div class="button-grid">
+          <button id="safety-ok" class="button button--primary" type="button">I'm OK</button>
+          <button id="safety-call" class="button button--alert" type="button">Call 112</button>
+          <button id="safety-contact" class="button" type="button">
+            Notify my trusted contact
+          </button>
+        </div>
+        <p class="muted">
+          Nothing is ever sent automatically. In this prototype the buttons only record your
+          choice.
+        </p>
+      </section>
+
+      <!-- In-the-moment question (CLAUDE.md section 5.1). -->
+      <form id="question-card" class="card" aria-labelledby="question-title" hidden>
+        <h2 id="question-title">Your band noticed a change</h2>
+        <p id="episode-timing" class="muted mono" aria-live="polite"></p>
+
+        <fieldset class="choice-group">
+          <legend>What were you doing just now?</legend>
+          <div class="button-grid" id="activity-options"></div>
+          <label class="visually-hidden" for="activity-text">Anything else? (optional)</label>
+          <input
+            id="activity-text"
+            class="text-input"
+            type="text"
+            maxlength="280"
+            placeholder="Anything else? (optional)"
+            style="margin-top: 8px"
+          />
+        </fieldset>
+
+        <fieldset class="choice-group">
+          <legend>How do you feel right now?</legend>
+          <div class="button-grid" id="mood-options"></div>
+          <p class="muted">1 = very bad · 5 = very good</p>
+        </fieldset>
+
+        <button id="send-answer" class="button button--primary" type="submit" disabled>
+          Send
+        </button>
+        <p id="form-error" class="notice notice--alert" role="alert" hidden></p>
+      </form>
+
+      <p id="confirmation" class="notice notice--ok" role="status" hidden></p>
+    </main>
+    <script type="module" src="patient.js"></script>
+  </body>
+</html>

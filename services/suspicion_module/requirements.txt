@@ -1,3 +1,7 @@
 # Runtime dependencies of suspicion-module; versions verified on s390x (docs/vm-check.md).
 fastapi==0.143.3
 uvicorn==0.54.0
+# C HTTP parser and event loop picked up by uvicorn automatically (benchmark: ingest-api
+# was CPU-bound in pure-Python HTTP parsing at 1,000 patients).
+httptools==0.9.0
+uvloop==0.23.0

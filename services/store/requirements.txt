@@ -2,3 +2,7 @@
 fastapi==0.143.3
 uvicorn==0.54.0
 cryptography==50.0.2
+# C HTTP parser and event loop picked up by uvicorn automatically (benchmark: ingest-api
+# was CPU-bound in pure-Python HTTP parsing at 1,000 patients).
+httptools==0.9.0
+uvloop==0.23.0

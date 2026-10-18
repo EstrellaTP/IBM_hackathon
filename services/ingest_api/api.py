@@ -58,6 +58,8 @@ class IngestResponse(BaseModel):
     patient_id: str
     accepted_samples: int
     episodes: list[EpisodeEvent]
+    # ingested_at, detected_at, responded_at (UTC) and detector_inference_ms.
+    timings: dict[str, datetime | float | None] = {}
 
 
 class AnswerResponse(BaseModel):
@@ -81,6 +83,7 @@ async def ingest_signal_batch(batch: SignalBatch, pipeline: PipelineDep) -> Inge
         patient_id=result.patient_id,
         accepted_samples=result.accepted_samples,
         episodes=result.episodes,
+        timings=result.timings,
     )
 
 

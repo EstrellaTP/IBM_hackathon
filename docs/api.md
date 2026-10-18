@@ -12,7 +12,7 @@ phone opens `/patient/?patient_id=p_...` and the simulator sends that patient's 
 
 | Method | Path | Body | Response |
 |---|---|---|---|
-| `POST` | `/api/v1/signal-batches` | `SignalBatch` | `202` `{"patient_id", "accepted_samples", "episodes": [EpisodeEvent]}` |
+| `POST` | `/api/v1/signal-batches` | `SignalBatch` | `202` `{"patient_id", "accepted_samples", "episodes": [EpisodeEvent], "timings"}` |
 | `WS` | `/api/v1/patients/{patient_id}/questions` | — | server pushes one message per episode (below) |
 | `POST` | `/api/v1/answers` | `QuestionAnswer` | `201` `{"episode_id", "stored_at"}` · `404` unknown episode |
 
@@ -20,6 +20,10 @@ phone opens `/patient/?patient_id=p_...` and the simulator sends that patient's 
 stamps `inferred_at`, and `pushed_at` is set just before the question is written to the
 WebSocket. All three are stored, so the clinician panel and the benchmark can show the
 server latency separately from the network.
+
+`timings` (for the latency benchmark): `ingested_at`, `detected_at` (detector answered),
+`responded_at` (UTC) and `detector_inference_ms` (pure detection compute in the
+detector, without HTTP or JSON).
 
 WebSocket message (server → phone), one per detected episode:
 

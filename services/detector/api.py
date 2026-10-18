@@ -7,6 +7,7 @@ all patients; the per-patient lock keeps batches of the same patient in order.
 
 from __future__ import annotations
 
+import time
 from datetime import datetime
 from typing import Annotated
 
@@ -33,10 +34,17 @@ class DetectionResponse(BaseModel):
 
     episodes: list[EpisodeEvent]
     model_version: str
+    # Pure detection compute time on this machine (the part that runs on IBM Z),
+    # excluding HTTP and JSON handling; used by the latency benchmark.
+    inference_ms: float
 
 
 @router.post("/detections", response_model=DetectionResponse)
 def detect(request: DetectionRequest, registry: RegistryDep) -> DetectionResponse:
     """Run the patient's personal detector over a new batch of samples."""
+    started = time.perf_counter()
     episodes = registry.process(request.batch, request.ingested_at)
-    return DetectionResponse(episodes=episodes, model_version=registry.model_version)
+    inference_ms = (time.perf_counter() - started) * 1000
+    return DetectionResponse(
+        episodes=episodes, model_version=registry.model_version, inference_ms=inference_ms
+    )

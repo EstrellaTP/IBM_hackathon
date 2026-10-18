@@ -20,7 +20,7 @@ import asyncio
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Protocol
 
 import httpx
@@ -97,6 +97,7 @@ class IngestResult:
     patient_id: str
     accepted_samples: int
     episodes: list[EpisodeEvent]
+    timings: dict[str, datetime | float | None] = field(default_factory=dict)
 
 
 class IngestPipeline:
@@ -140,6 +141,7 @@ class IngestPipeline:
             ),
         )
         detection.raise_for_status()
+        detected_at = utcnow()
         payload = detection.json()
         episodes = [EpisodeEvent.model_validate(item) for item in payload["episodes"]]
         for episode in episodes:
@@ -165,7 +167,14 @@ class IngestPipeline:
                 },
             )
         )
-        return IngestResult(batch.patient_id, len(batch.samples), episodes)
+        # Server-side stage times, so the benchmark separates server from network.
+        timings = {
+            "ingested_at": ingested_at,
+            "detected_at": detected_at,
+            "responded_at": utcnow(),
+            "detector_inference_ms": payload.get("inference_ms"),
+        }
+        return IngestResult(batch.patient_id, len(batch.samples), episodes, timings)
 
     async def store_answer(self, answer: QuestionAnswer) -> dict:
         """Forward the patient's answer to the store and audit it.

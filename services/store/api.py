@@ -9,7 +9,7 @@ from datetime import datetime
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from pydantic import BaseModel
 
 from services.common.schemas import (
@@ -19,7 +19,12 @@ from services.common.schemas import (
     QuestionAnswer,
     SignalBatch,
 )
-from services.store.core import EncryptedStore, UnknownEpisodeError
+from services.store.core import (
+    ActivityHour,
+    EncryptedStore,
+    PatientProfile,
+    UnknownEpisodeError,
+)
 from services.store.settings import load_settings
 
 router = APIRouter(prefix="/api/v1", tags=["store"])
@@ -157,3 +162,38 @@ def verify_audit_entries(store: StoreDep) -> AuditVerification:
     """Recompute the audit hash chain and report whether it is intact."""
     valid, entries = store.verify_audit_chain()
     return AuditVerification(valid=valid, entries=entries)
+
+
+PatientIdPath = Annotated[str, Path(pattern=PATIENT_ID_PATTERN)]
+
+
+@router.put("/patients/{patient_id}/profile", response_model=PatientProfile)
+def set_profile(
+    patient_id: PatientIdPath, profile: PatientProfile, store: StoreDep
+) -> PatientProfile:
+    """Store a patient's pseudonymous profile (sex and age group only)."""
+    store.set_profile(patient_id, profile)
+    return profile
+
+
+@router.get("/patients/{patient_id}/profile", response_model=PatientProfile)
+def get_profile(patient_id: PatientIdPath, store: StoreDep) -> PatientProfile:
+    """Return a patient's profile."""
+    profile = store.get_profile(patient_id)
+    if profile is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"no profile for {patient_id}")
+    return profile
+
+
+@router.post("/patients/{patient_id}/activity-hours", status_code=status.HTTP_201_CREATED)
+def add_activity_hours(
+    patient_id: PatientIdPath, hours: list[ActivityHour], store: StoreDep
+) -> dict[str, int]:
+    """Store hourly activity for the suspicion module (encrypted at rest)."""
+    return {"stored": store.add_activity_hours(patient_id, hours)}
+
+
+@router.get("/patients/{patient_id}/activity-hours", response_model=list[ActivityHour])
+def get_activity_hours(patient_id: PatientIdPath, store: StoreDep) -> list[ActivityHour]:
+    """Return a patient's hourly activity history in time order."""
+    return store.activity_hours(patient_id)

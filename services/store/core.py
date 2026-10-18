@@ -20,15 +20,18 @@ the option of moving to PostgreSQL without touching the other services.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import sqlite3
 import threading
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
+from typing import Literal
 
 from cryptography.fernet import Fernet, InvalidToken
+from pydantic import BaseModel, Field
 
 from services.common.schemas import (
     AuditEntry,
@@ -84,7 +87,41 @@ CREATE TRIGGER IF NOT EXISTS audit_log_no_update BEFORE UPDATE ON audit_log
 BEGIN SELECT RAISE(ABORT, 'audit log is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS audit_log_no_delete BEFORE DELETE ON audit_log
 BEGIN SELECT RAISE(ABORT, 'audit log is append-only'); END;
+
+-- Hourly activity history used by the suspicion module (one row per patient/day/hour).
+CREATE TABLE IF NOT EXISTS activity_hours (
+    patient_id TEXT NOT NULL,
+    day INTEGER NOT NULL,
+    hour INTEGER NOT NULL,
+    payload BLOB NOT NULL,             -- encrypted {"activity": float, "valid": bool}
+    PRIMARY KEY (patient_id, day, hour)
+);
+
+-- Minimal pseudonymous profile: only what selects the reference range.
+CREATE TABLE IF NOT EXISTS patient_profiles (
+    patient_id TEXT PRIMARY KEY,
+    payload BLOB NOT NULL              -- encrypted PatientProfile JSON
+);
 """
+
+
+class PatientProfile(BaseModel):
+    """What the suspicion module needs to pick a reference range; nothing identifying."""
+
+    sex: Literal["F", "M"]
+    age_group: str = Field(pattern=r"^\d{2}-\d{2}$|^\d{2}\+$", description="e.g. '30-39'")
+    device: str = Field(default="unknown", max_length=32)
+    # Calendar date of recording day 1 (dates are shifted on import: no real dates).
+    recording_start: date | None = None
+
+
+class ActivityHour(BaseModel):
+    """Activity summed over one clock hour of one recording day."""
+
+    day: int = Field(ge=1)
+    hour: int = Field(ge=0, le=23)
+    activity: float = Field(ge=0)
+    valid: bool
 
 
 class UnknownEpisodeError(LookupError):
@@ -314,3 +351,54 @@ class EncryptedStore:
                 "SELECT COUNT(*) FROM signal_batches WHERE patient_id = ?", (patient_id,)
             ).fetchone()
         return int(row[0])
+
+    # -- suspicion-module inputs ------------------------------------------------
+
+    def set_profile(self, patient_id: str, profile: PatientProfile) -> None:
+        """Store (or replace) a patient's pseudonymous profile, encrypted."""
+        with self._lock:
+            self._db.execute(
+                "INSERT INTO patient_profiles (patient_id, payload) VALUES (?, ?) "
+                "ON CONFLICT (patient_id) DO UPDATE SET payload = excluded.payload",
+                (patient_id, self._encrypt(profile.model_dump_json())),
+            )
+
+    def get_profile(self, patient_id: str) -> PatientProfile | None:
+        """Return a patient's profile, or ``None``."""
+        with self._lock:
+            row = self._db.execute(
+                "SELECT payload FROM patient_profiles WHERE patient_id = ?", (patient_id,)
+            ).fetchone()
+        return PatientProfile.model_validate_json(self._decrypt(row[0])) if row else None
+
+    def add_activity_hours(self, patient_id: str, hours: list[ActivityHour]) -> int:
+        """Store hourly activity (replacing the same day/hour); return rows written."""
+        rows = [
+            (
+                patient_id,
+                hour.day,
+                hour.hour,
+                self._encrypt(hour.model_dump_json(include={"activity", "valid"})),
+            )
+            for hour in hours
+        ]
+        with self._lock:
+            self._db.executemany(
+                "INSERT INTO activity_hours (patient_id, day, hour, payload) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT (patient_id, day, hour) DO UPDATE SET payload = excluded.payload",
+                rows,
+            )
+        return len(rows)
+
+    def activity_hours(self, patient_id: str) -> list[ActivityHour]:
+        """Return a patient's hourly activity history in time order."""
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT day, hour, payload FROM activity_hours WHERE patient_id = ? "
+                "ORDER BY day, hour",
+                (patient_id,),
+            ).fetchall()
+        return [
+            ActivityHour(day=day, hour=hour, **json.loads(self._decrypt(payload)))
+            for day, hour, payload in rows
+        ]

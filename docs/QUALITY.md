@@ -18,7 +18,7 @@ Reglas:
 - [x] [CC] **Comparación de modelos**: logística frente a RF frente a LightGBM, en una tabla. (R3) → tabla logística / RF / LightGBM en los tres escenarios con IC 95 % bootstrap: [`ml/reports/metrics.md`](../ml/reports/metrics.md)
 - [x] [CC] **Calibración**: diagrama de fiabilidad en `ml/reports/`. (R3) → isotónica dentro de cada fold, ECE ≤ 0,01: [`ml/reports/reliability.svg`](../ml/reports/reliability.svg)
 - [x] [CC] **Equidad**: sensibilidad y especificidad por sexo y grupo de edad + gráfica. (R1, AI) → sensibilidad 0,59–0,71 y especificidad 0,50–0,65 en 6 grupos sexo × edad (NHANES): [`ml/reports/fairness.svg`](../ml/reports/fairness.svg), tabla en `metrics.md`
-- [ ] [CC] **Detector frente a regla fija**: falsas alarmas por hora y recall por evento en WESAD y enfermeras, z-score frente a Isolation Forest frente a `HR > 100`. (R2, AI)
+- [ ] [CC] **Detector frente a regla fija**: falsas alarmas por hora y recall por evento en WESAD y enfermeras, z-score frente a Isolation Forest frente a `HR > 100`. (R2, AI) → **WESAD hecho** (LOSO, 15 sujetos): z-score F1 0,74 / 0,33 FA/h; Isolation Forest 0,24 / 1,03; `HR > 100` 0,32 / 0,89; solo FC 0,62: [`ml/reports/detector_wesad.md`](../ml/reports/detector_wesad.md). **Pendiente: enfermeras** (descarga manual, issue #2)
 - [ ] [APP] **Sin leakage por construcción**: test que falla si un mismo `patient_id` aparece en train y test. (R3)
 - [ ] [APP] **Features documentadas**: cada feature (IS, IV, RA, L5, M10, sueño…) con fórmula y referencia en `ml/features/README.md`. (R3)
 

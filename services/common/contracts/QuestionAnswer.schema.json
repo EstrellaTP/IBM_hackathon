@@ -3,6 +3,7 @@
     "Activity": {
       "description": "What the patient says they were doing when the episode happened.",
       "enum": [
+        "exercise",
         "work",
         "rest",
         "social",
@@ -11,6 +12,177 @@
       ],
       "title": "Activity",
       "type": "string"
+    },
+    "AnswerDetails": {
+      "additionalProperties": false,
+      "description": "Follow-up answers shown after the main ones (added in 1.1.0).\n\nThe phone only asks the follow-ups of the activity the patient picked (for\nexample intensity for ``exercise``), so every field is optional. Values are\nclosed lists so the clinician view can show them without free text about the\npatient (CLAUDE.md section 5.5).",
+      "properties": {
+        "exercise_intensity": {
+          "anyOf": [
+            {
+              "enum": [
+                "light",
+                "moderate",
+                "vigorous"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exercise Intensity"
+        },
+        "usual_for_you": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Usual For You"
+        },
+        "workload": {
+          "anyOf": [
+            {
+              "enum": [
+                "light",
+                "normal",
+                "demanding"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Workload"
+        },
+        "rest_state": {
+          "anyOf": [
+            {
+              "enum": [
+                "awake",
+                "falling_asleep",
+                "just_woke_up"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rest State"
+        },
+        "company": {
+          "anyOf": [
+            {
+              "enum": [
+                "family",
+                "partner",
+                "friends",
+                "colleagues",
+                "strangers"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Company"
+        },
+        "social_tone": {
+          "anyOf": [
+            {
+              "enum": [
+                "pleasant",
+                "neutral",
+                "tense"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Social Tone"
+        },
+        "travel_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "walking",
+                "cycling",
+                "public_transport",
+                "car"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Travel Mode"
+        },
+        "in_a_hurry": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "In A Hurry"
+        },
+        "emotion": {
+          "anyOf": [
+            {
+              "enum": [
+                "calm",
+                "happy",
+                "energetic",
+                "tired",
+                "sad",
+                "anxious",
+                "irritable",
+                "overwhelmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Emotion"
+        },
+        "something_happened": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Something Happened"
+        }
+      },
+      "title": "AnswerDetails",
+      "type": "object"
     },
     "SafetyAction": {
       "description": "Button pressed in the safety protocol. Recorded only; nothing is actually sent.",
@@ -67,6 +239,17 @@
       ],
       "default": null,
       "title": "Mood 1 5"
+    },
+    "details": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnswerDetails"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "safety_action": {
       "anyOf": [

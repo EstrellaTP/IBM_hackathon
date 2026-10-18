@@ -4,7 +4,8 @@
  *
  * Flow (CLAUDE.md sections 5.1 and 5.4): an EpisodeEvent arrives over the
  * WebSocket; a normal one shows the question, an extreme one first shows
- * "Are you OK?" with buttons the patient chooses from. Nothing is sent
+ * "Are you OK?" with buttons the patient chooses from (I'm OK, or notify a
+ * trusted contact; the team removed the Call 112 button). Nothing is sent
  * automatically; the safety buttons only record the choice in this prototype.
  *
  * @module patient-view
@@ -12,7 +13,6 @@
 
 import {
   fetchMyTimeline,
-  formatClock,
   isMock,
   nowIso,
   postAnswer,
@@ -21,14 +21,7 @@ import {
 import { brandElement } from "../shared/brand.js";
 import { BRAND_NAME } from "../shared/config.js";
 import { renderMoments } from "../shared/moments.js";
-
-/** Activity choices on the phone (mock-up labels; values from the Activity enum). */
-const PHONE_ACTIVITIES = [
-  ["rest", "Resting"],
-  ["work", "Working"],
-  ["commute", "Walking"],
-  ["social", "With people"],
-];
+import { buildQuestionFlow } from "./question-flow.js";
 
 const HISTORY_REFRESH_MS = 10000;
 
@@ -41,26 +34,6 @@ function element(tag, className, text) {
     node.textContent = text;
   }
   return node;
-}
-
-function choiceGroup(name, legend, choices, gridClass = "button-grid") {
-  const fieldset = element("fieldset", "choice-group");
-  fieldset.append(element("legend", "", legend));
-  const grid = element("div", gridClass);
-  for (const [value, label] of choices) {
-    const wrapper = element("div", "choice");
-    const input = document.createElement("input");
-    input.type = "radio";
-    input.name = name;
-    input.id = `${name}-${value}`;
-    input.value = value;
-    const text = element("label", "", label);
-    text.htmlFor = input.id;
-    wrapper.append(input, text);
-    grid.append(wrapper);
-  }
-  fieldset.append(grid);
-  return fieldset;
 }
 
 /**
@@ -137,53 +110,22 @@ export function mountPatientView(root, session) {
     return header;
   };
 
-  const showQuestion = (episode, receivedAt) => {
-    const form = element("form", "question");
-    form.append(
-      cardHeader(),
-      element("h2", "", `${BRAND_NAME} noticed a change`),
-      choiceGroup("activity", "What were you doing just now?", PHONE_ACTIVITIES),
-      choiceGroup(
-        "mood",
-        "How do you feel right now?",
-        [1, 2, 3, 4, 5].map((value) => [String(value), String(value)]),
-        "mood-row",
-      ),
-      element(
-        "p",
-        "muted",
-        `1 = very bad, 5 = very good. Detected ${formatClock(episode.detected_at)}, reached you ${formatClock(receivedAt)}.`,
-      ),
-    );
-    const button = element("button", "button button--primary", "Send");
-    button.type = "submit";
-    button.disabled = true;
-    form.append(button);
-    form.addEventListener("change", () => {
-      button.disabled = !form.querySelector("input:checked");
-    });
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const value = (name) => form.querySelector(`input[name="${name}"]:checked`)?.value ?? null;
-      const mood = value("mood");
-      send(
-        {
-          episode_id: episode.episode_id,
-          activity: value("activity"),
-          activity_text: null,
-          mood_1_5: mood === null ? null : Number(mood),
-          safety_action: null,
-          answered_at: nowIso(),
-        },
-        "Answer sent. It is now with your clinician.",
-      );
+  const showQuestion = (episode) => {
+    const form = buildQuestionFlow({
+      header: cardHeader(),
+      title: `${BRAND_NAME} noticed a change`,
+      onSubmit: (fields) =>
+        send(
+          { episode_id: episode.episode_id, ...fields, safety_action: null, answered_at: nowIso() },
+          "Answer sent. It is now with your clinician.",
+        ),
     });
     ring.hidden = true;
     questionSlot.replaceChildren(form);
     form.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const showSafety = (episode, receivedAt) => {
+  const showSafety = (episode) => {
     const box = element("section", "question question--safety");
     box.append(
       cardHeader(),
@@ -193,18 +135,11 @@ export function mountPatientView(root, session) {
     const grid = element("div", "button-grid");
     const ok = element("button", "button button--primary", "I'm OK");
     const contact = element("button", "button button--outline", "Notify my trusted contact");
-    const call = element("button", "button button--outline", "Call 112");
-    for (const button of [ok, contact, call]) {
+    for (const button of [ok, contact]) {
       button.type = "button";
       grid.append(button);
     }
-    ok.addEventListener("click", () => showQuestion(episode, receivedAt));
-    call.addEventListener("click", () =>
-      send(
-        { episode_id: episode.episode_id, safety_action: "call_112_simulated", answered_at: nowIso() },
-        "Simulation: no call was made. In a real deployment this opens your phone's dialler and only you place the call.",
-      ),
-    );
+    ok.addEventListener("click", () => showQuestion(episode));
     contact.addEventListener("click", () =>
       send(
         {
@@ -235,15 +170,14 @@ export function mountPatientView(root, session) {
         : "Keep this page open; it reconnects on its own.";
     },
     onEpisode: (episode) => {
-      const receivedAt = nowIso();
       confirmation.hidden = true;
       if ("vibrate" in navigator) {
         navigator.vibrate(200);
       }
       if (episode.severity === "extreme") {
-        showSafety(episode, receivedAt);
+        showSafety(episode);
       } else {
-        showQuestion(episode, receivedAt);
+        showQuestion(episode);
       }
     },
   });

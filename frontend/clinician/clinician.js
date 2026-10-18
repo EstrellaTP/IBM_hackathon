@@ -10,6 +10,7 @@
  * @module clinician
  */
 
+import { describeDetails } from "../shared/moments.js";
 import { initEvidencePanel } from "./evidence-panel.js";
 import {
   fetchEpisodes,
@@ -22,6 +23,7 @@ const REFRESH_INTERVAL_MS = 5000;
 
 /** Human labels for the Activity enum (services/common/schemas.py). */
 const ACTIVITY_LABELS = {
+  exercise: "Physical activity",
   work: "Working or studying",
   rest: "Resting",
   social: "With other people",
@@ -89,6 +91,10 @@ function describeAnswer(answer) {
   }
   if (answer.activity) {
     pairs.push(["Doing", ACTIVITY_LABELS[answer.activity] ?? answer.activity]);
+  }
+  const details = describeDetails(answer.details);
+  if (details.length) {
+    pairs.push(["Details", details.join(" · ")]);
   }
   if (answer.activity_text) {
     pairs.push(["Note", answer.activity_text]);

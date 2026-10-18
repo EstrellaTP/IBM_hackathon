@@ -70,6 +70,42 @@ def test_mood_range():
         QuestionAnswer(episode_id=new_episode_id(), mood_1_5=7, answered_at=T0)
 
 
+def test_answer_accepts_follow_up_details():
+    answer = QuestionAnswer.model_validate(
+        {
+            "episode_id": new_episode_id(),
+            "activity": "exercise",
+            "mood_1_5": 4,
+            "details": {"exercise_intensity": "vigorous", "usual_for_you": False},
+            "answered_at": T0.isoformat(),
+        }
+    )
+    assert answer.details.exercise_intensity == "vigorous"
+    assert answer.details.usual_for_you is False
+
+
+def test_answer_without_details_stays_valid():
+    answer = QuestionAnswer(episode_id=new_episode_id(), activity="work", answered_at=T0)
+    assert answer.details is None
+
+
+def test_answer_rejects_unknown_follow_up_value():
+    with pytest.raises(ValidationError):
+        QuestionAnswer(
+            episode_id=new_episode_id(),
+            mood_1_5=2,
+            details={"emotion": "depressed"},
+            answered_at=T0,
+        )
+
+
+def test_answer_rejects_unknown_follow_up_field():
+    with pytest.raises(ValidationError):
+        QuestionAnswer(
+            episode_id=new_episode_id(), mood_1_5=2, details={"diagnosis": "x"}, answered_at=T0
+        )
+
+
 def test_module_request_uses_from_alias():
     r = ModuleRequest.model_validate(
         {

@@ -3,6 +3,18 @@
   "activity": "work",
   "activity_text": null,
   "mood_1_5": 2,
+  "details": {
+    "exercise_intensity": null,
+    "usual_for_you": null,
+    "workload": "demanding",
+    "rest_state": null,
+    "company": null,
+    "social_tone": null,
+    "travel_mode": null,
+    "in_a_hurry": null,
+    "emotion": "anxious",
+    "something_happened": true
+  },
   "safety_action": null,
-  "answered_at": "2026-10-17T22:21:13Z"
+  "answered_at": "2026-10-18T08:54:06Z"
 }

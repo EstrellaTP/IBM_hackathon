@@ -751,6 +751,101 @@ h3 {
   font-weight: 600;
 }
 
+/* Question flow: one question per screen (frontend/app/question-flow.js). */
+
+.flow__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  margin-bottom: 4px;
+}
+
+.flow__back {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--teal-soft);
+  color: var(--teal-deep);
+  font-size: 1.375rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.flow__progress {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.flow__kicker {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--teal-deep);
+}
+
+.flow .flow__title {
+  display: block;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 8px 0 16px;
+}
+
+.flow .button-grid {
+  grid-template-columns: 1fr;
+}
+
+.flow .choice label {
+  min-height: 56px;
+  font-size: 1.0625rem;
+}
+
+.flow .mood-row .choice label {
+  min-height: 64px;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.flow__scale {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.flow__note {
+  min-height: 112px;
+  resize: vertical;
+  font: inherit;
+}
+
+.flow__actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .flow__step {
+    animation: flow-step-in 220ms ease;
+  }
+
+  @keyframes flow-step-in {
+    from {
+      opacity: 0.4;
+      transform: translateX(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
 /* Evidence: header, confidence bar, cards. */
 
 .outcome {

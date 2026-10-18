@@ -2,8 +2,8 @@
  * Thin client for the backend API, shared by the patient and clinician pages.
  *
  * Every page is served by the HTTPS gateway on the LinuxONE VM (port 8443), so
- * all URLs are relative and the WebSocket uses the same origin. Paths follow the
- * layout agreed in issue #1 and documented in frontend/README.md.
+ * all URLs are relative and the WebSocket uses the same origin. Paths and message
+ * formats follow docs/api.md, the API contract the gateway routes.
  *
  * Add `?mock=1` to any page to run it without a backend: the client then
  * produces contract-compliant fake data (services/common/contracts/*.example.json),
@@ -25,7 +25,7 @@ const MOCK_FIRST_EPISODE_DELAY_MS = 4000;
 export function readPageOptions() {
   const params = new URLSearchParams(window.location.search);
   return {
-    patientId: params.get("patient") ?? "p_7f3a2b",
+    patientId: params.get("patient_id") ?? params.get("patient") ?? "p_7f3a2b",
     mock: params.get("mock") === "1",
     // The demo replays recorded WESAD signals; the patient page says so on screen.
     replayNotice: params.get("replay") !== "0",
@@ -82,6 +82,8 @@ export function millisecondsBetween(startIso, endIso) {
  * @param {string} options.patientId - Pseudonymous patient id.
  * @param {boolean} options.mock - Generate fake episodes instead of connecting.
  * @param {(episode: object) => void} options.onEpisode - Called with each EpisodeEvent.
+ *   The server wraps it as `{type: "question", episode}` and also sends
+ *   `{type: "ping"}` keep-alives, which are ignored here.
  * @param {(connected: boolean) => void} options.onStatus - Called when the link changes.
  * @returns {() => void} Function that closes the subscription.
  */
@@ -96,7 +98,8 @@ export function subscribeToQuestions({ patientId, mock, onEpisode, onStatus }) {
 
   const connect = () => {
     const scheme = window.location.protocol === "https:" ? "wss" : "ws";
-    const url = `${scheme}://${window.location.host}/ws/patients/${encodeURIComponent(patientId)}`;
+    const path = `${API_BASE}/patients/${encodeURIComponent(patientId)}/questions`;
+    const url = `${scheme}://${window.location.host}${path}`;
     socket = new WebSocket(url);
     socket.addEventListener("open", () => {
       delay = RECONNECT_DELAY_MS;
@@ -104,7 +107,10 @@ export function subscribeToQuestions({ patientId, mock, onEpisode, onStatus }) {
     });
     socket.addEventListener("message", (message) => {
       try {
-        onEpisode(JSON.parse(message.data));
+        const payload = JSON.parse(message.data);
+        if (payload.type === "question" && payload.episode) {
+          onEpisode(payload.episode);
+        }
       } catch (error) {
         console.error("Ignoring malformed episode message", error);
       }
@@ -160,12 +166,16 @@ export async function fetchEpisodes(patientId, mock) {
   if (mock) {
     return mockEpisodeList(patientId);
   }
-  const url = `${API_BASE}/episodes?patient_id=${encodeURIComponent(patientId)}`;
+  const url = `${API_BASE}/clinician/patients/${encodeURIComponent(patientId)}/timeline`;
   const response = await fetch(url, { headers: { Accept: "application/json" } });
+  if (response.status === 404) {
+    return [];
+  }
   if (!response.ok) {
     throw new Error(`Episodes could not be loaded (HTTP ${response.status}).`);
   }
-  return response.json();
+  const body = await response.json();
+  return body.items ?? [];
 }
 
 // --------------------------------------------------------------------------

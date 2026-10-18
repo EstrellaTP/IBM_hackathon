@@ -163,7 +163,8 @@ async function refresh() {
 function start(patientId) {
   currentPatientId = patientId;
   const url = new URL(window.location.href);
-  url.searchParams.set("patient", patientId);
+  url.searchParams.delete("patient");
+  url.searchParams.set("patient_id", patientId);
   window.history.replaceState(null, "", url);
   window.clearInterval(refreshTimer);
   refresh();

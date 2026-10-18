@@ -6,8 +6,8 @@ Two static pages with no build step, served by the HTTPS gateway on the LinuxONE
 
 | Page | URL | Who | Phase |
 |---|---|---|---|
-| Patient | `/patient/?patient=p_<hex>` | Patient's phone | 1: in-the-moment question and safety protocol |
-| Clinician | `/clinician/?patient=p_<hex>` | Clinician's browser | 1: episodes timeline. 2: evidence charts (F2-FE-01) |
+| Patient | `/patient/?patient_id=p_<hex>` | Patient's phone | 1: in-the-moment question and safety protocol |
+| Clinician | `/clinician/?patient_id=p_<hex>` | Clinician's browser | 1: episodes timeline. 2: evidence charts (F2-FE-01) |
 
 ## Run without a backend
 
@@ -23,15 +23,15 @@ python3 -m http.server 8765 --directory frontend
 The patient page shows a notice that the data is replayed WESAD; hide it with `?replay=0`
 when a real band is connected.
 
-## API the pages expect
+## API the pages use
 
-All paths are relative to the page origin (`https://<vm>:8443`).
+The pages follow [`docs/api.md`](../docs/api.md), the contract the gateway routes:
 
-| Method | Path | Body / response | Used by |
-|---|---|---|---|
-| `WS` | `/ws/patients/{patient_id}` | Server pushes one `EpisodeEvent` JSON per message | Patient |
-| `POST` | `/api/v1/answers` | Body: `QuestionAnswer`. Response: `201` | Patient |
-| `GET` | `/api/v1/episodes?patient_id={id}` | `[{"episode": EpisodeEvent, "answer": QuestionAnswer \| null}]` | Clinician |
+| Method | Path | Used by |
+|---|---|---|
+| `WS` | `/api/v1/patients/{patient_id}/questions` (messages `{"type": "question", "episode": EpisodeEvent}`; `ping` ignored) | Patient |
+| `POST` | `/api/v1/answers` with a `QuestionAnswer` body | Patient |
+| `GET` | `/api/v1/clinician/patients/{patient_id}/timeline` → `{"patient_id", "items": [...]}` | Clinician |
 
 The clinician page refreshes the timeline every 5 seconds.
 

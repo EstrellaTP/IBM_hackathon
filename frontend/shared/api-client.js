@@ -20,12 +20,18 @@ const MOCK_FIRST_EPISODE_DELAY_MS = 4000;
 /**
  * Read page options from the query string.
  *
- * @returns {{patientId: string, mock: boolean, replayNotice: boolean}} Page options.
+ * The patient link carries a per-patient access token (`?token=`) issued by the
+ * server (issue #14). The page sends it with every patient-side request; without a
+ * valid token the server refuses to push questions or store answers.
+ *
+ * @returns {{patientId: string, token: string, mock: boolean, replayNotice: boolean}}
+ *   Page options.
  */
 export function readPageOptions() {
   const params = new URLSearchParams(window.location.search);
   return {
     patientId: params.get("patient_id") ?? params.get("patient") ?? "p_7f3a2b",
+    token: params.get("token") ?? "",
     mock: params.get("mock") === "1",
     // The demo replays recorded WESAD signals; the patient page says so on screen.
     replayNotice: params.get("replay") !== "0",
@@ -80,6 +86,7 @@ export function millisecondsBetween(startIso, endIso) {
  *
  * @param {object} options - Subscription options.
  * @param {string} options.patientId - Pseudonymous patient id.
+ * @param {string} options.token - Patient access token from the link.
  * @param {boolean} options.mock - Generate fake episodes instead of connecting.
  * @param {(episode: object) => void} options.onEpisode - Called with each EpisodeEvent.
  *   The server wraps it as `{type: "question", episode}` and also sends
@@ -87,7 +94,7 @@ export function millisecondsBetween(startIso, endIso) {
  * @param {(connected: boolean) => void} options.onStatus - Called when the link changes.
  * @returns {() => void} Function that closes the subscription.
  */
-export function subscribeToQuestions({ patientId, mock, onEpisode, onStatus }) {
+export function subscribeToQuestions({ patientId, token, mock, onEpisode, onStatus }) {
   if (mock) {
     return subscribeToMockQuestions({ patientId, onEpisode, onStatus });
   }
@@ -99,7 +106,9 @@ export function subscribeToQuestions({ patientId, mock, onEpisode, onStatus }) {
   const connect = () => {
     const scheme = window.location.protocol === "https:" ? "wss" : "ws";
     const path = `${API_BASE}/patients/${encodeURIComponent(patientId)}/questions`;
-    const url = `${scheme}://${window.location.host}${path}`;
+    // Browsers cannot set headers on a WebSocket, so the token goes in the query
+    // string; the gateway sends Referrer-Policy: no-referrer so it is not leaked.
+    const url = `${scheme}://${window.location.host}${path}?token=${encodeURIComponent(token)}`;
     socket = new WebSocket(url);
     socket.addEventListener("open", () => {
       delay = RECONNECT_DELAY_MS;
@@ -135,20 +144,24 @@ export function subscribeToQuestions({ patientId, mock, onEpisode, onStatus }) {
  * Send the patient's answer to an episode.
  *
  * @param {object} answer - A QuestionAnswer contract object.
+ * @param {string} token - Patient access token from the link.
  * @param {boolean} mock - Skip the network call.
  * @returns {Promise<void>} Resolves when the server has stored the answer.
  * @throws {Error} If the server rejects the answer.
  */
-export async function postAnswer(answer, mock) {
+export async function postAnswer(answer, token, mock) {
   if (mock) {
     mockStore.answers.set(answer.episode_id, answer);
     return;
   }
   const response = await fetch(`${API_BASE}/answers`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(answer),
   });
+  if (response.status === 401 || response.status === 403) {
+    throw new Error("This link is not valid any more. Ask your clinician for a new one.");
+  }
   if (!response.ok) {
     throw new Error(`The answer was not saved (HTTP ${response.status}).`);
   }

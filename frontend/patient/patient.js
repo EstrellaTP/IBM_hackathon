@@ -150,7 +150,7 @@ function handleEpisode(episode) {
 
 async function sendAnswer(answer, confirmationText) {
   try {
-    await postAnswer(answer, options.mock);
+    await postAnswer(answer, options.token, options.mock);
     pendingEpisode = null;
     showOnly(elements.idleCard);
     elements.confirmation.textContent = confirmationText;
@@ -225,6 +225,7 @@ function init() {
 
   subscribeToQuestions({
     patientId: options.patientId,
+    token: options.token,
     mock: options.mock,
     onEpisode: handleEpisode,
     onStatus: setConnection,

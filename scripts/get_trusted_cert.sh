@@ -31,20 +31,22 @@ if [ ! -x "$LEGO" ]; then
     golang:1.26 go install github.com/go-acme/lego/v5@v5.5.2
 fi
 
-lego() {  # $1 = server, then subcommand and options
-  local server="$1"; shift
-  sudo "$LEGO" --server "$server" --path "$DATA" --accept-tos \
-    --domains "$IP" --disable-cn --tls "$@"
+lego() {  # $1 = ACME server, $2 = data dir; lego v5 takes its options after "run"
+  local server="$1" path="$2"
+  sudo "$LEGO" run --server "$server" --path "$path" --accept-tos \
+    --domains "$IP" --tls --profile shortlived
 }
 
 if [ "$MODE" = "--renew" ]; then
-  # Renew when fewer than 3 of the 6 days remain.
-  lego "$PRODUCTION" renew --days 3 --profile shortlived
+  # "run" renews only when due (by default when a third of the lifetime is left).
+  lego "$PRODUCTION" "$DATA"
 else
+  # Separate data dirs: otherwise the production run finds the staging certificate,
+  # considers it valid and skips the real issuance (seen on the first run).
   echo "== staging test (no rate limits, untrusted certificate)"
-  lego "$STAGING" run --profile shortlived
+  lego "$STAGING" "$DATA-staging"
   echo "== production"
-  lego "$PRODUCTION" run --profile shortlived
+  lego "$PRODUCTION" "$DATA"
 fi
 
 sudo install -m 644 "$DATA/certificates/$IP.crt" "$CERT_DIR/tls.crt"
@@ -54,6 +56,8 @@ echo "Installed the Let's Encrypt certificate for $IP and reloaded the gateway."
 
 if [ "$MODE" != "--renew" ]; then
   line="0 */12 * * * cd $PWD && bash scripts/get_trusted_cert.sh $IP --renew >> $HOME/cert-renew.log 2>&1"
-  (crontab -l 2>/dev/null | grep -v get_trusted_cert.sh; echo "$line") | crontab -
+  # "|| true": with no crontab yet, crontab -l (and grep on empty input) exit 1, which
+  # set -o pipefail would turn into an abort (seen on the first run).
+  { crontab -l 2>/dev/null | grep -v get_trusted_cert.sh || true; echo "$line"; } | crontab -
   echo "Renewal checked every 12 hours (crontab)."
 fi

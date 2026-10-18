@@ -10,5 +10,7 @@
 !ml/data/loaders.py
 !ml/features/
 !ml/models/
+!ml/reports/reference_ranges.json
+ml/models/artifacts
 **/__pycache__
 **/*.pyc

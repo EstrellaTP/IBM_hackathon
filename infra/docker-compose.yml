@@ -49,10 +49,15 @@ services:
     <<: *service
     build: { context: .., dockerfile: services/store/Dockerfile }
     volumes: ["store-data:/data"]
+    # Loopback only: lets tools on the VM host (dataset import) reach the store. Not
+    # reachable from the internet (bound to 127.0.0.1, see docs/vm-check.md section 5).
+    ports: ["127.0.0.1:8001:8000"]
 
   suspicion-module:
     <<: *service
     build: { context: .., dockerfile: services/suspicion_module/Dockerfile }
+    # Trained model, produced on the VM by `python3 -m ml.models.train` (never in git).
+    volumes: ["../ml/models/artifacts:/models:ro"]
     depends_on:
       store: { condition: service_healthy }
 

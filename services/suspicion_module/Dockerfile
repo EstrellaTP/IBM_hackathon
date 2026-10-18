@@ -17,6 +17,13 @@ WORKDIR /app
 COPY services/__init__.py services/__init__.py
 COPY services/common services/common
 COPY services/suspicion_module services/suspicion_module
+# Feature code, the portable predictor and the NHANES reference bands. The trained
+# model itself is mounted read-only at /models (it lives on the VM, never in the image
+# or in git).
+COPY ml/__init__.py ml/__init__.py
+COPY ml/features ml/features
+COPY ml/models/__init__.py ml/models/predict.py ml/models/
+COPY ml/reports/reference_ranges.json ml/reports/reference_ranges.json
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --retries=3     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]

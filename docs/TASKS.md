@@ -85,8 +85,8 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 
 | ID | Tarea | Carril | Estado |
 |---|---|---|---|
-| F4-BE-01 | Despliegue desde cero con un comando en la VM y logs sin datos sensibles | CC | ⬜ |
-| F4-ML-01 | Script final que regenera todas las métricas y figuras | APP + CC | ⬜ |
+| F4-BE-01 | Despliegue desde cero con un comando en la VM y logs sin datos sensibles | CC | ✅ |
+| F4-ML-01 | Script final que regenera todas las métricas y figuras | APP + CC | 🟡 CC |
 | F4-FE-01 | Revisión de lenguaje (CLAUDE.md §5.5) y legibilidad de gráficas con alguien de fuera | HUM | ⬜ |
 | F4-DOC-01 | README final (problema, solución, arquitectura, LinuxONE, métricas, limitaciones, ética, cómo reproducir) y `ATTRIBUTIONS.md` completo | APP | ⬜ |
 | F4-HUM-01 | Grabar y montar el vídeo ≤ 3 min con la VM en pantalla | HUM | ⬜ |

@@ -1,0 +1,13 @@
+# Container logs contain no health data (F4-BE-01, 2026-10-18)
+$ docker compose -p holter -f infra/docker-compose.yml logs --no-color > /tmp/all_logs.txt
+$ wc -l < /tmp/all_logs.txt
+355
+$ grep -c -i -E '"hr"|"eda"|mood|activity_text|acc_x' /tmp/all_logs.txt
+0
+# Sample of what services log (ids, events and timings only):
+suspicion-module-1  | 2026-10-18 04:51:52,525 INFO services.suspicion_module.core patient=p_dec0ecf80c4a module=depression valid_days=32
+suspicion-module-1  | 2026-10-18 04:51:52,691 INFO services.suspicion_module.core patient=p_dec0d611e801 module=depression valid_days=23
+suspicion-module-1  | 2026-10-18 04:52:24,917 INFO services.suspicion_module.core patient=p_dec052417c41 module=depression valid_days=14
+suspicion-module-1  | 2026-10-18 04:52:25,068 INFO services.suspicion_module.core patient=p_dec01ffd4c95 module=depression valid_days=15
+suspicion-module-1  | 2026-10-18 04:52:25,249 INFO services.suspicion_module.core patient=p_dec0ecf80c4a module=depression valid_days=32
+suspicion-module-1  | 2026-10-18 04:52:25,414 INFO services.suspicion_module.core patient=p_dec0d611e801 module=depression valid_days=23

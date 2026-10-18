@@ -1,2 +1,8 @@
 pytest>=8
 ruff>=0.6
+# Service dependencies needed by the unit tests (versions verified on s390x).
+pydantic==2.14.1
+fastapi==0.143.3
+httpx==0.28.1
+cryptography==50.0.2
+-r ml/requirements.txt

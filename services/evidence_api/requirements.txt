@@ -1,0 +1,4 @@
+# Runtime dependencies of evidence-api; versions verified on s390x (docs/vm-check.md).
+fastapi==0.143.3
+uvicorn==0.54.0
+httpx==0.28.1

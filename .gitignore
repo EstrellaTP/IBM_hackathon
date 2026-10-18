@@ -35,3 +35,6 @@ ml/models/artifacts/
 .claude/ALLOW_STOP
 .claude/.stop_count
 .claude/settings.local.json
+
+# Logins of the prototype (scrypt hashes), created on the VM only (issue #14)
+infra/users.json

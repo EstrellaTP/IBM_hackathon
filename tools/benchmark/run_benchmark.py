@@ -41,6 +41,7 @@ import pandas as pd
 
 from ml.data import synthetic
 from services.common.schemas import new_patient_id, utcnow
+from tools.device import device_headers
 
 logger = logging.getLogger("benchmark")
 
@@ -114,9 +115,7 @@ async def patient_loop(
         signal_start += timedelta(seconds=BATCH_SECONDS)
         sent = time.monotonic()
         try:
-            response = await client.post(
-                INGEST_PATH, content=body, headers={"content-type": "application/json"}
-            )
+            response = await client.post(INGEST_PATH, content=body, headers=device_headers())
             client_ms = (time.monotonic() - sent) * 1000
             server_ms = detector_ms = None
             episodes = 0

@@ -34,6 +34,7 @@ from services.common.schemas import (
     new_patient_id,
     utcnow,
 )
+from tools.device import device_headers
 from tools.simulator.replay import schedule_batches, stress_start_seconds
 
 logger = logging.getLogger("simulator")
@@ -91,7 +92,7 @@ async def run_patient(
             response = await client.post(
                 INGEST_PATH,
                 content=batch.model_dump_json(),
-                headers={"content-type": "application/json"},
+                headers=device_headers(),
             )
             response.raise_for_status()
         except httpx.HTTPError as error:

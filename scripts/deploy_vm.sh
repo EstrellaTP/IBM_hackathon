@@ -32,6 +32,21 @@ if [ ! -f infra/.env ]; then
   chmod 600 infra/.env
   echo "Created infra/.env with a new encryption key"
 fi
+# Access-control secrets (issue #14), added to older .env files too.
+for name in AUTH_TOKEN_SECRET DEVICE_KEY; do
+  if ! grep -q "^$name=." infra/.env; then
+    value=$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=')
+    if grep -q "^$name=" infra/.env; then
+      sed -i "s|^$name=.*|$name=$value|" infra/.env
+    else
+      echo "$name=$value" >> infra/.env
+    fi
+    echo "Generated $name in infra/.env"
+  fi
+done
+grep -q "^AUTH_USERS_PATH=" infra/.env || echo "AUTH_USERS_PATH=/etc/holter/users.json" >> infra/.env
+# Logins live on the VM only; create accounts with: python3 -m tools.create_user ...
+[ -f infra/users.json ] || { echo '{"users": []}' > infra/users.json; chmod 644 infra/users.json; }
 compose="docker compose -p $PROJECT -f infra/docker-compose.yml --env-file infra/.env"
 $compose up -d --build --wait --wait-timeout 300
 $compose ps --format "table {{.Service}}\t{{.Status}}\t{{.Ports}}"

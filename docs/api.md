@@ -8,6 +8,28 @@ Times are ISO 8601 with a timezone (UTC). Field names are `snake_case`.
 The patient is identified by a pseudonymous `patient_id` (`p_` + hex). In the demo the
 phone opens `/patient/?patient_id=p_...` and the simulator sends that patient's signal.
 
+## Access control (issue #14)
+
+Health data and every check stay on LinuxONE; the frontend can be served from the
+gateway or from another origin listed in `ALLOWED_ORIGINS` (CORS: GET/POST,
+`Authorization` and `Content-Type` headers only).
+
+| Method | Path | Who | Notes |
+|---|---|---|---|
+| `POST` | `/api/v1/sessions` | anyone | `{username, password}` → `201 {token, role, display_name, patient_id, expires_at}`; `401` with the same message for unknown user or wrong password |
+| `GET` | `/api/v1/patients/me/timeline` | patient | own timeline only |
+| `WS` | `/api/v1/patients/{id}/questions?token=` | patient | close `4401` invalid token, `4403` other patient or origin not allowed |
+| `POST` | `/api/v1/answers` | patient | `401` no token, `403` episode of another patient, `404` unknown episode |
+| `GET` | `/api/v1/clinician/patients` | clinician | only assigned patients |
+| `GET` | `/api/v1/clinician/patients/{id}/timeline` | clinician | `403` if not assigned |
+| `POST` | `/api/v1/module-runs` | clinician | `403` if not assigned; the audit records the logged-in clinician |
+| `POST` | `/api/v1/signal-batches` | device | `X-Device-Key` header, `401` otherwise |
+
+Tokens: `Authorization: Bearer <token>` (HS256 JWT, 12 h, claims `sub`, `role`,
+`patient_id`, `iat`, `exp`). Accounts: `python3 -m tools.create_user` on the VM
+(`infra/users.json`, scrypt hashes, gitignored). Secrets `AUTH_TOKEN_SECRET` and
+`DEVICE_KEY` are generated on the VM into `infra/.env` by `scripts/deploy_vm.sh`.
+
 ## Patient side (`ingest-api`)
 
 | Method | Path | Body | Response |

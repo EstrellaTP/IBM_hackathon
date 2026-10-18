@@ -12,6 +12,7 @@ demo environment in the US (LinuxONE Community Cloud), not the real deployment.
 | Encryption at rest of every health field | Fernet (AES-128-CBC + HMAC-SHA256) on signal, episodes, answers, activity and profiles; only pseudonymous ids and timestamps in clear | `services/store/core.py`, `tests/store/test_core.py` (no health value in clear in the database files) |
 | Hardware crypto | AES, SHA-2/3 and ECDH run on CPACF, the on-chip crypto instructions of IBM Z (used by OpenSSL, hence by TLS and Fernet) | `docs/screenshots/vm_check.txt` (`icainfo`) |
 | Keys outside code and images | Fernet key generated on the VM into `infra/.env` (mode 600, gitignored), never in git or in an image | `scripts/deploy_vm.sh` |
+| Access control (issue #14) | Login for patients and clinicians (scrypt-hashed passwords, HS256 session tokens, 12 h); a patient reaches only their own data, a clinician only assigned patients; devices need `X-Device-Key`; CORS limited to `ALLOWED_ORIGINS`; WebSocket checks token and origin | `services/common/auth.py`, `tests/ingest_api/test_vertical_slice.py` (401/403 matrix), `tests/e2e/run_e2e.py` |
 | Pseudonymisation | Random `p_…` ids; no identity table; demo data with shifted dates | `services/common/schemas.py`, `tools/import_depresjon.py` |
 | Tamper-evident audit | Append-only audit log (triggers reject UPDATE/DELETE) with a SHA-256 hash chain; every inference, answer, timeline view and module run is logged | `GET /api/v1/audit-entries/verification`, `tests/store/test_core.py` |
 | No health data in logs | Services log ids, events and timings only | `docs/screenshots/logs_no_health_data.txt` |
@@ -37,6 +38,15 @@ demo environment in the US (LinuxONE Community Cloud), not the real deployment.
   store, so health data never leaves it for scoring; the Telum on-chip accelerator
   (NNPA) is available to the guest (`docs/vm-check.md`) and measured in
   `ml/reports/nnpa_comparison.md`.
+
+## Next steps (not in the prototype)
+
+- OIDC login for clinicians through the health system's identity provider (no local
+  passwords), with per-patient authorisation from the care relationship (a clinician
+  only sees their own patients) instead of a static assignment list.
+- Refresh tokens and revocation; rate limiting of `/api/v1/sessions`.
+- Audit entries for logins: the current `AuditEntry` contract requires a
+  `patient_id`, so logins are logged (ids only) but not yet in the audit chain.
 
 ## Regulation (design alignment, not certification)
 

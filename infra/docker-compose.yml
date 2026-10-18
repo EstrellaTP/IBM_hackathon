@@ -37,6 +37,7 @@ services:
   ingest-api:
     <<: *service
     build: { context: .., dockerfile: services/ingest_api/Dockerfile }
+    volumes: ["./users.json:/etc/holter/users.json:ro"]
     depends_on:
       detector: { condition: service_healthy }
       store: { condition: service_healthy }
@@ -57,13 +58,17 @@ services:
     <<: *service
     build: { context: .., dockerfile: services/suspicion_module/Dockerfile }
     # Trained model, produced on the VM by `python3 -m ml.models.train` (never in git).
-    volumes: ["../ml/models/artifacts:/models:ro"]
+    volumes:
+      - "../ml/models/artifacts:/models:ro"
+      - "./users.json:/etc/holter/users.json:ro"
     depends_on:
       store: { condition: service_healthy }
 
   evidence-api:
     <<: *service
     build: { context: .., dockerfile: services/evidence_api/Dockerfile }
+    # Logins (hashed passwords) and clinician assignments; created by tools/create_user.py.
+    volumes: ["./users.json:/etc/holter/users.json:ro"]
     depends_on:
       store: { condition: service_healthy }
 

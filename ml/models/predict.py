@@ -27,8 +27,18 @@ from pathlib import Path
 
 import numpy as np
 
+from ml.features.circadian import apply_device_scaling
+
 MODEL_FILE = "depression_model.json"
 LIGHTGBM_FILE = "depression_lightgbm.txt"
+
+
+def sigmoid(value: float) -> float:
+    """Numerically stable logistic function (no overflow for large |value|)."""
+    if value >= 0:
+        return 1.0 / (1.0 + math.exp(-value))
+    exp_value = math.exp(value)
+    return exp_value / (1.0 + exp_value)
 
 
 @dataclass(frozen=True)
@@ -75,7 +85,15 @@ class DepressionModel:
             return float(np.interp(raw_probability, calibration["x"], calibration["y"]))
         clipped = min(max(raw_probability, 1e-6), 1 - 1e-6)
         logit = math.log(clipped / (1 - clipped))
-        return 1.0 / (1.0 + math.exp(-(calibration["a"] * logit + calibration["b"])))
+        return sigmoid(calibration["a"] * logit + calibration["b"])
+
+    def standardise(self, raw_features: dict[str, float]) -> dict[str, float]:
+        """Scale device-scaled features with the training population's statistics."""
+        return apply_device_scaling(raw_features, self.meta.get("device_scaling", {}))
+
+    def predict_raw(self, raw_features: dict[str, float]) -> Prediction:
+        """Score features straight from ``circadian.person_features`` (unscaled)."""
+        return self.predict(self.standardise(raw_features))
 
     def predict(self, features: dict[str, float]) -> Prediction:
         """Score one person from their feature dictionary."""
@@ -91,7 +109,7 @@ class DepressionModel:
             raw_score = float(self._booster.predict(row, raw_score=True)[0])
             contrib = self._booster.predict(row, pred_contrib=True)[0][:-1]
             contributions = dict(zip(self.features, contrib.tolist(), strict=True))
-        raw_probability = 1.0 / (1.0 + math.exp(-raw_score))
+        raw_probability = sigmoid(raw_score)
         probability = self._calibrate(raw_probability)
         return Prediction(
             probability=probability,

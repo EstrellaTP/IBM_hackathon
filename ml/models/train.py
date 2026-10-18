@@ -83,6 +83,9 @@ DEPLOYABLE_MODELS = ("logistic", "lightgbm")
 # transfer. Set after a first run (the fallback itself was planned in CLAUDE.md 14).
 TRANSFER_AUC_MIN = 0.65
 BOOTSTRAP_RESAMPLES = 1000
+# DEPRESJON people left out of the deployed model's final fit, so the demo dashboard
+# only ever scores people the model has not seen (they still count in the LOSO).
+DEMO_HOLDOUT = ("condition_3", "condition_11", "control_5", "control_12")
 # Minimum leaf sizes as a share of the training set: ~20 people on NHANES, 2-3 on the
 # 54 training people of a DEPRESJON fold (fixed sizes made the trees constant there).
 LEAF_SHARE = 0.003
@@ -337,6 +340,8 @@ def export_portable_model(
     out_dir: Path,
     splitter,
     trained_on: str,
+    device_scaling: dict | None = None,
+    held_out: list[str] | None = None,
 ) -> dict:
     """Fit the chosen model on all its data and save it in portable text formats.
 
@@ -381,6 +386,8 @@ def export_portable_model(
         "threshold": float(y.mean()),
         "training_people": len(y),
         "training_prevalence": float(y.mean()),
+        "device_scaling": device_scaling or {},
+        "held_out_people": held_out or [],
     }
     if model_name == "lightgbm":
         booster = base.named_steps["lgbmclassifier"].booster_
@@ -451,8 +458,19 @@ def run(processed_dir: Path, reports_dir: Path, artifacts_dir: Path) -> str:
     _svg_reliability(reliability, reports_dir / "reliability.svg")
     _svg_fairness(fairness, reports_dir / "fairness.svg")
     if plan_b:
+        keep = ~depresjon["person_id"].isin(DEMO_HOLDOUT).to_numpy()
+        fit_table = depresjon[keep].reset_index(drop=True)
+        x_fit, y_fit, g_fit = prepare(fit_table)
         meta = export_portable_model(
-            deploy, x_d, y_d, g_d, artifacts_dir, LeaveOneGroupOut(), "depresjon"
+            deploy,
+            x_fit,
+            y_fit,
+            g_fit,
+            artifacts_dir,
+            LeaveOneGroupOut(),
+            "depresjon",
+            circadian.device_scaling_stats(fit_table, circadian.DEVICE_SCALED_FEATURES),
+            sorted(set(DEMO_HOLDOUT) & set(depresjon["person_id"])),
         )
     else:
         meta = export_portable_model(

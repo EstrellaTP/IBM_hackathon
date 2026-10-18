@@ -41,3 +41,24 @@ def test_lightgbm_model_loads_from_text_and_explains_with_tree_contributions(tmp
     assert set(prediction.contributions) == set(train.FEATURES)
     assert model.meta["calibration"]["type"] == "isotonic"
     assert model.version == "lightgbm-synthetic-600"
+
+
+def test_raw_features_are_scaled_like_the_training_population():
+    from ml.features import circadian
+
+    table = _feature_table(80, 0.3, 9, "p")
+    stats = circadian.device_scaling_stats(table, circadian.DEVICE_SCALED_FEATURES)
+    scaled = circadian.standardise_within_dataset(
+        table[train.FEATURES], circadian.DEVICE_SCALED_FEATURES
+    )
+    raw_row = table.iloc[5][train.FEATURES].to_dict()
+    applied = circadian.apply_device_scaling(raw_row, stats)
+    for column in circadian.DEVICE_SCALED_FEATURES:
+        assert math.isclose(applied[column], scaled.iloc[5][column], rel_tol=1e-9, abs_tol=1e-12)
+
+
+def test_sigmoid_is_stable_for_extreme_scores():
+    from ml.models.predict import sigmoid
+
+    assert sigmoid(1000.0) == 1.0 and sigmoid(-1000.0) == 0.0
+    assert math.isclose(sigmoid(0.0), 0.5)

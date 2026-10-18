@@ -219,3 +219,28 @@ def standardise_within_dataset(features: pd.DataFrame, columns: list[str]) -> pd
         std = logged.std(ddof=0)
         result[column] = (logged - logged.mean()) / std if std > 0 else 0.0
     return result
+
+
+def device_scaling_stats(features: pd.DataFrame, columns: list[str]) -> dict[str, dict]:
+    """Mean and SD of ``log1p`` of each device-scaled column (training population).
+
+    Stored with the exported model so a new patient recorded with the same kind of
+    device can be standardised exactly like the training data.
+    """
+    stats = {}
+    for column in columns:
+        logged = np.log1p(features[column].clip(lower=0))
+        stats[column] = {"mean": float(logged.mean()), "std": float(logged.std(ddof=0))}
+    return stats
+
+
+def apply_device_scaling(features: dict[str, float], stats: dict[str, dict]) -> dict[str, float]:
+    """Standardise one person's device-scaled features with stored training statistics."""
+    scaled = dict(features)
+    for column, values in stats.items():
+        raw = scaled.get(column)
+        if raw is None or (isinstance(raw, float) and math.isnan(raw)):
+            continue
+        std = values["std"] or 1.0
+        scaled[column] = (math.log1p(max(raw, 0.0)) - values["mean"]) / std
+    return scaled

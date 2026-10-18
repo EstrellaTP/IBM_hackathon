@@ -4,6 +4,21 @@ Entradas nuevas **arriba del todo**. Formato en `CLAUDE.md` §1.2.
 
 ---
 
+### [CC] 07:20 18/10 · CIERRE DE SESIÓN · Estado exacto y siguientes pasos
+**Estado de `main`** (todo integrado, smoke test en verde; etiqueta `demo-ok-1`):
+- Corte vertical en la VM (e2e verde), módulo de depresión desplegado (`POST /api/v1/module-runs`, 4 pacientes de demo), benchmark, NNPA, big-endian, equidad, calibración, rangos de referencia, seguridad (`docs/security.md`). QUALITY: 10/11 casillas `[CC]` cerradas.
+- F4-BE-01 ✅ (logs sin datos de salud: `docs/screenshots/logs_no_health_data.txt`). F4-ML-01 ✅: `bash scripts/regenerate_reports.sh` en la VM regenera todo; **ejecutado entero a las 07:17 sin errores**; resultados en `~/reports_out` de la VM (no copiados al repo: son las mismas cifras ya versionadas, salvo variación aleatoria mínima).
+- Stack desplegado y funcionando ahora mismo en `https://148.100.99.58:8443` (proyecto compose `holter`, desde `~/IBM_hackathon`).
+
+**A medias (retomar aquí):**
+1. Rama `cc/daytime-activity-metric` (subida, **sin integrar**): la gráfica de actividad diurna pasa a ser actividad diurna media / M10 propio (antes saturaba). Antes de integrar: `scripts/sync_to_vm.sh`, en la VM `~/venv-holter/bin/python -m ml.models.reference_ranges --out ~/reports_out/reference_ranges.json`, `scp` a `ml/reports/reference_ranges.json`, commit en esa rama, smoke test, integrar y `scripts/deploy_vm.sh` (la imagen del módulo copia los rangos).
+2. Issue #12 (para-equipo): una persona debe aprobar y ejecutar `bash scripts/get_trusted_cert.sh 148.100.99.58` en la VM (certificado Let's Encrypt para la IP; implica aceptar sus términos). lego v5.5.2 ya está compilado para s390x en `~/bin/lego`. Después: capturas de `/patient/` y `/clinician/` con un episodio real.
+
+**Bloqueado por personas:** #2 (dataset de enfermeras → última casilla `[CC]` "Detector frente a regla fija" y F3-ML-03), F0-HUM-02/F5-01 (pulsera real), #5 (repo público), #10 (relato del plan B en el pitch), F1-HUM-01 (prueba con móvil).
+**Esperando a [APP]:** #9/#10/#11 (panel de evidencias F2-FE-01 contra los pacientes de demo `p_dec052417c41`, `p_dec01ffd4c95`, `p_dec0ecf80c4a`, `p_dec0d611e801`), F2-ML-05 (SHAP), F3-FE-*.
+
+**Cómo retomar:** `git pull`; en el portátil usar `PYTHON=.venv/Scripts/python bash scripts/smoke_test.sh`; en la VM el venv es `~/venv-holter`; los informes se escriben en `~/reports_out` (el sync pisa `ml/reports/`). Para que el hook `Stop` vuelva a mantener a CC trabajando, borrar `.claude/ALLOW_STOP` (creado al cerrar esta sesión a petición de Estrella).
+
 ### [CC] 06:50 18/10 · F2-BE-01 + F2-BE-02 · Módulo de sospecha desplegado en la VM con pacientes de demo
 - Hecho (F2-BE-01 cogida de APP, aviso en #9): `services/suspicion_module` (`POST /api/v1/module-runs`, contrato `ModuleRequest` → `ModuleResult`): lee perfil + actividad horaria + episodios del store, calcula features y métricas diarias, puntúa con el modelo portable (`ml.models.predict`), marca como evidencia ≤ 2 gráficas (suma de contribuciones por métrica en la dirección del resultado), FC como `available: false`, calidad del registro, auditoría `module_run`. Sin texto sobre el paciente.
 - Store: tablas `activity_hours` y `patient_profiles` (cifradas). Puerto `127.0.0.1:8001` (solo loopback) para herramientas del host.

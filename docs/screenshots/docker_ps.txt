@@ -1,0 +1,24 @@
+ Container holter-gateway-1  Started
+$ uname -m && docker --version
+s390x
+Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2
+
+$ docker ps
+NAMES                       IMAGE                     STATUS                        PORTS
+holter-gateway-1            holter-gateway            Up 25 seconds (healthy)       8080/tcp, 0.0.0.0:8443->8443/tcp, [::]:8443->8443/tcp
+holter-evidence-api-1       holter-evidence-api       Up About a minute (healthy)   8000/tcp
+holter-suspicion-module-1   holter-suspicion-module   Up About a minute (healthy)   8000/tcp
+holter-ingest-api-1         holter-ingest-api         Up About a minute (healthy)   8000/tcp
+holter-store-1              holter-store              Up About a minute (healthy)   8000/tcp
+holter-detector-1           holter-detector           Up About a minute (healthy)   8000/tcp
+
+$ docker image inspect --format {{.Architecture}} holter-detector
+linux/s390x
+$ curl -sk https://localhost:8443/health   # on the VM
+ok
+
+# From the laptop (public internet):
+$ curl -sk https://148.100.99.58:8443/health
+ok
+$ curl -m 10 http://148.100.99.58:8000/health   # internal service port, not published
+Connection timed out after 10013 milliseconds

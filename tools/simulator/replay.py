@@ -58,13 +58,18 @@ def schedule_batches(
         now: Wall-clock time at which the real-time part starts.
         batch_seconds: Signal seconds per batch.
         realtime_from_s: Seconds into the recording where real-time replay starts;
-            earlier batches are sent immediately.
+            earlier batches are sent immediately. Values beyond the end of the
+            recording mean "everything fast-forward, ending now".
         until_s: Stop after this many seconds of recording (``None``: until the end).
 
     Yields:
         Batches in time order.
     """
     origin = stream.index[0]
+    # Real time cannot start after the end of the recording: "all fast-forward" means
+    # the recording ends now (otherwise a huge value would shift samples into the past).
+    duration_s = (stream.index[-1] - origin).total_seconds()
+    realtime_from_s = min(realtime_from_s, duration_s + batch_seconds)
     shift = now - (origin + timedelta(seconds=realtime_from_s))
     if until_s is not None:
         stream = stream[stream.index < origin + timedelta(seconds=until_s)]

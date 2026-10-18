@@ -49,3 +49,11 @@ def test_simulator_rejects_a_patient_id_that_is_not_a_pseudonym():
     with pytest.raises(SystemExit):
         parse_args(["--synthetic", "--patient-id", "p_dem0010"])
     assert parse_args(["--synthetic", "--patient-id", "p_dec0010"]).patient_id == "p_dec0010"
+
+
+def test_all_fast_forward_ends_now_instead_of_shifting_into_the_past():
+    stream = synthetic.wesad_wrist_stream(duration_s=120, periods=(), seed=1)
+    batches = list(schedule_batches(stream, NOW, batch_seconds=10, realtime_from_s=1e9))
+    assert not any(b.realtime for b in batches)
+    last = batches[-1].samples[-1].t
+    assert NOW - timedelta(seconds=20) <= last <= NOW

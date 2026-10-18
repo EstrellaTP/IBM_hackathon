@@ -1,21 +1,93 @@
 /**
- * Thin client for the backend API, shared by the patient and clinician pages.
+ * Thin client for the LinuxONE API, shared by every page.
  *
- * Every page is served by the HTTPS gateway on the LinuxONE VM (port 8443), so
- * all URLs are relative and the WebSocket uses the same origin. Paths and message
- * formats follow docs/api.md, the API contract the gateway routes.
+ * Paths and message formats follow docs/api.md. The API origin comes from
+ * config.js: same origin when the pages are served by the LinuxONE gateway,
+ * the gateway's public origin when they are served by a static host (Vercel).
+ * Every request carries the signed-in user's token; LinuxONE checks what each
+ * role may read or write (issue #14).
  *
- * Add `?mock=1` to any page to run it without a backend: the client then
- * produces contract-compliant fake data (services/common/contracts/*.example.json),
- * which is how the pages were developed before the services existed.
+ * Add `?mock=1` to any page, or sign in with a demo account in offline mode, to
+ * run without a backend: the client then produces contract-compliant fake data.
  *
  * @module api-client
  */
 
-const API_BASE = "/api/v1";
+import { API_BASE, webSocketOrigin } from "./config.js";
+import { clearSession, getSession, goToLogin } from "./session.js";
+
 const RECONNECT_DELAY_MS = 2000;
 const MAX_RECONNECT_DELAY_MS = 30000;
 const MOCK_FIRST_EPISODE_DELAY_MS = 4000;
+const MOCK_SESSION_HOURS = 12;
+
+/**
+ * Whether the page runs on fake data (offline demo).
+ *
+ * @returns {boolean} True with `?mock=1` or a session opened in offline mode.
+ */
+export function isMock() {
+  return (
+    new URLSearchParams(window.location.search).get("mock") === "1" ||
+    Boolean(getSession()?.mock)
+  );
+}
+
+/**
+ * Fetch from the API with the session token; sign out on 401.
+ *
+ * @param {string} path - Path under /api/v1, starting with "/".
+ * @param {RequestInit} [init] - Fetch options.
+ * @returns {Promise<Response>} The response (never a 401).
+ * @throws {Error} When the session is no longer valid (after redirecting).
+ */
+async function apiFetch(path, init = {}) {
+  const headers = new Headers(init.headers ?? {});
+  headers.set("Accept", "application/json");
+  const token = getSession()?.token;
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  if (response.status === 401) {
+    clearSession();
+    goToLogin("Your session has ended. Sign in again.");
+    throw new Error("Your session has ended.");
+  }
+  return response;
+}
+
+/**
+ * Sign in on LinuxONE.
+ *
+ * @param {string} username - Account name.
+ * @param {string} password - Password.
+ * @param {boolean} offline - Open an offline demo session with fake data instead.
+ * @returns {Promise<import("./session.js").Session>} The new session.
+ * @throws {Error} With a message to show under the form.
+ */
+export async function login(username, password, offline) {
+  if (offline) {
+    return mockSession(username);
+  }
+  let response;
+  try {
+    response = await fetch(`${API_BASE}/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+  } catch {
+    throw new Error("LinuxONE cannot be reached right now. Check the connection and try again.");
+  }
+  if (response.status === 401) {
+    throw new Error("The username or password is not correct.");
+  }
+  if (!response.ok) {
+    throw new Error(`Sign-in failed on the server (HTTP ${response.status}).`);
+  }
+  return response.json();
+}
 
 /**
  * Read page options from the query string.
@@ -86,7 +158,7 @@ export function millisecondsBetween(startIso, endIso) {
  *
  * @param {object} options - Subscription options.
  * @param {string} options.patientId - Pseudonymous patient id.
- * @param {string} options.token - Patient access token from the link.
+ * @param {string} options.token - The patient's session token.
  * @param {boolean} options.mock - Generate fake episodes instead of connecting.
  * @param {(episode: object) => void} options.onEpisode - Called with each EpisodeEvent.
  *   The server wraps it as `{type: "question", episode}` and also sends
@@ -104,11 +176,10 @@ export function subscribeToQuestions({ patientId, token, mock, onEpisode, onStat
   let delay = RECONNECT_DELAY_MS;
 
   const connect = () => {
-    const scheme = window.location.protocol === "https:" ? "wss" : "ws";
-    const path = `${API_BASE}/patients/${encodeURIComponent(patientId)}/questions`;
+    const path = `/api/v1/patients/${encodeURIComponent(patientId)}/questions`;
     // Browsers cannot set headers on a WebSocket, so the token goes in the query
     // string; the gateway sends Referrer-Policy: no-referrer so it is not leaked.
-    const url = `${scheme}://${window.location.host}${path}?token=${encodeURIComponent(token)}`;
+    const url = `${webSocketOrigin()}${path}?token=${encodeURIComponent(token)}`;
     socket = new WebSocket(url);
     socket.addEventListener("open", () => {
       delay = RECONNECT_DELAY_MS;
@@ -144,7 +215,7 @@ export function subscribeToQuestions({ patientId, token, mock, onEpisode, onStat
  * Send the patient's answer to an episode.
  *
  * @param {object} answer - A QuestionAnswer contract object.
- * @param {string} token - Patient access token from the link.
+ * @param {string} token - Unused; kept for the legacy page (the session token is sent).
  * @param {boolean} mock - Skip the network call.
  * @returns {Promise<void>} Resolves when the server has stored the answer.
  * @throws {Error} If the server rejects the answer.
@@ -154,13 +225,13 @@ export async function postAnswer(answer, token, mock) {
     mockStore.answers.set(answer.episode_id, answer);
     return;
   }
-  const response = await fetch(`${API_BASE}/answers`, {
+  const response = await apiFetch("/answers", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: tokenHeader(token),
     body: JSON.stringify(answer),
   });
-  if (response.status === 401 || response.status === 403) {
-    throw new Error("This link is not valid any more. Ask your clinician for a new one.");
+  if (response.status === 403) {
+    throw new Error("This question belongs to another account, so the answer was not saved.");
   }
   if (!response.ok) {
     throw new Error(`The answer was not saved (HTTP ${response.status}).`);
@@ -179,8 +250,11 @@ export async function fetchEpisodes(patientId, mock) {
   if (mock) {
     return mockEpisodeList(patientId);
   }
-  const url = `${API_BASE}/clinician/patients/${encodeURIComponent(patientId)}/timeline`;
-  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  const path = `/clinician/patients/${encodeURIComponent(patientId)}/timeline`;
+  const response = await apiFetch(path);
+  if (response.status === 403) {
+    throw new Error("This patient is not assigned to you.");
+  }
   if (response.status === 404) {
     return [];
   }
@@ -206,20 +280,70 @@ export async function runModule(request, mock) {
   if (mock) {
     return mockModuleResult(request);
   }
-  const response = await fetch(`${API_BASE}/module-runs`, {
+  const response = await apiFetch("/module-runs", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
   if (response.ok) {
     return response.json();
   }
   const reasons = {
+    403: "This patient is not assigned to you.",
     404: "There is no recording for this patient.",
     422: "The selected period has too few valid days to run the module.",
     503: "The module is not available on the server right now.",
   };
   throw new Error(reasons[response.status] ?? `The module could not run (HTTP ${response.status}).`);
+}
+
+/**
+ * The clinician's assigned patients.
+ *
+ * @returns {Promise<Array<{patient_id: string, episodes: number, answered: number,
+ *   last_episode_at: string | null}>>} Patients, most recent activity first.
+ * @throws {Error} If the request fails.
+ */
+export async function fetchMyPatients() {
+  if (isMock()) {
+    return mockPatients();
+  }
+  const response = await apiFetch("/clinician/patients");
+  if (!response.ok) {
+    throw new Error(`Patients could not be loaded (HTTP ${response.status}).`);
+  }
+  const patients = await response.json();
+  return patients.sort((a, b) =>
+    String(b.last_episode_at ?? "").localeCompare(String(a.last_episode_at ?? "")),
+  );
+}
+
+/**
+ * The signed-in patient's own episodes and answers.
+ *
+ * @returns {Promise<Array<{episode: object, answer: object | null}>>} Newest first.
+ * @throws {Error} If the request fails.
+ */
+export async function fetchMyTimeline() {
+  const session = getSession();
+  if (isMock()) {
+    return mockEpisodeList(session?.patient_id ?? "p_7f3a2b");
+  }
+  const response = await apiFetch("/patients/me/timeline");
+  if (!response.ok) {
+    throw new Error(`Your history could not be loaded (HTTP ${response.status}).`);
+  }
+  const body = await response.json();
+  return body.items ?? [];
+}
+
+function tokenHeader(token) {
+  // The legacy patient page may carry a link token; the session token wins.
+  const headers = { "Content-Type": "application/json" };
+  if (token && !getSession()) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
 }
 
 // --------------------------------------------------------------------------
@@ -364,4 +488,32 @@ function mockModuleResult(request) {
     episodes: [],
     generated_at: new Date().toISOString(),
   };
+}
+
+const MOCK_ACCOUNTS = {
+  "patient.demo": { role: "patient", display_name: "Demo patient", patient_id: "p_7f3a2b9c1d4e5f60" },
+  "clinician.demo": { role: "clinician", display_name: "Dr. Demo", patient_id: null },
+};
+
+function mockSession(username) {
+  const account = MOCK_ACCOUNTS[username.trim().toLowerCase()];
+  if (!account) {
+    throw new Error("Offline demo accounts are patient.demo and clinician.demo.");
+  }
+  return {
+    token: "offline-demo",
+    ...account,
+    expires_at: new Date(Date.now() + MOCK_SESSION_HOURS * 3600000).toISOString(),
+    mock: true,
+  };
+}
+
+function mockPatients() {
+  const now = Date.now();
+  return [
+    { patient_id: "p_7f3a2b9c1d4e5f60", episodes: 6, answered: 5, last_episode_at: new Date(now - 3600000).toISOString() },
+    { patient_id: "p_dec052417c41", episodes: 0, answered: 0, last_episode_at: null },
+    { patient_id: "p_dec0ecf80c4a", episodes: 0, answered: 0, last_episode_at: null },
+    { patient_id: "p_dec0d611e801", episodes: 0, answered: 0, last_episode_at: null },
+  ];
 }

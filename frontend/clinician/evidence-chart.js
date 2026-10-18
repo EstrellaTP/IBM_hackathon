@@ -16,7 +16,7 @@
 const SVG_NS = "http://www.w3.org/2000/svg";
 const WIDTH = 420;
 const HEIGHT = 190;
-const MARGIN = { top: 12, right: 64, bottom: 28, left: 40 };
+const MARGIN = { top: 22, right: 12, bottom: 28, left: 44 };
 const MARKER_RADIUS = 4;
 const HIT_RADIUS = 12;
 const Y_TICKS = 4;
@@ -177,11 +177,12 @@ export function renderEvidenceChart(metric, tooltip) {
       }),
     );
     const bandLabel = svgElement("text", {
-      x: WIDTH - MARGIN.right + 6,
-      y: (top + bottom) / 2 + 4,
+      x: WIDTH - MARGIN.right,
+      y: MARGIN.top - 8,
+      "text-anchor": "end",
       class: "evidence-chart__axis",
     });
-    bandLabel.textContent = "typical";
+    bandLabel.textContent = "reference range";
     svg.append(bandLabel);
   }
 
@@ -196,7 +197,9 @@ export function renderEvidenceChart(metric, tooltip) {
       "text-anchor": points.length === 1 ? "middle" : anchor,
       class: "evidence-chart__axis",
     });
-    label.textContent = shortDate(points[index].day);
+    label.textContent = `day ${index + 1}`;
+    label.append(svgElement("title"));
+    label.lastChild.textContent = shortDate(points[index].day);
     svg.append(label);
   }
 
@@ -215,8 +218,10 @@ export function renderEvidenceChart(metric, tooltip) {
       svgElement("circle", {
         cx,
         cy,
-        r: MARKER_RADIUS,
-        class: `evidence-chart__marker${outside ? " evidence-chart__marker--outside" : ""}`,
+        class: `evidence-chart__marker${outside ? " evidence-chart__marker--outside" : ""}${
+          index === points.length - 1 ? " evidence-chart__marker--last" : ""
+        }`,
+        r: index === points.length - 1 ? MARKER_RADIUS + 1 : MARKER_RADIUS,
       }),
     );
     const hit = svgElement("circle", {
@@ -256,8 +261,35 @@ export function renderEvidenceChart(metric, tooltip) {
     svg.append(hit);
   });
 
-  figure.append(svg, renderTable(points, reference, text));
+  figure.append(svg);
+  if (reference) {
+    figure.append(renderSummary(points, reference));
+  }
+  figure.append(renderTable(points, reference, text));
   return figure;
+}
+
+/**
+ * One sentence saying where the patient's days fall against the reference band.
+ *
+ * @param {Array<{value: number}>} points - Patient values.
+ * @param {{p10: number, p90: number}} reference - Reference band.
+ * @returns {HTMLParagraphElement} The sentence.
+ */
+function renderSummary(points, reference) {
+  const below = points.filter((point) => point.value < reference.p10).length;
+  const above = points.filter((point) => point.value > reference.p90).length;
+  const total = points.length;
+  const sentence = document.createElement("p");
+  sentence.className = "evidence-chart__summary";
+  if (below === 0 && above === 0) {
+    sentence.textContent = `Within the reference range for age and sex on all ${total} days.`;
+  } else if (below >= above) {
+    sentence.textContent = `Below the reference range for age and sex on ${below} of ${total} days.`;
+  } else {
+    sentence.textContent = `Above the reference range for age and sex on ${above} of ${total} days.`;
+  }
+  return sentence;
 }
 
 /**
@@ -272,12 +304,7 @@ function renderTable(points, reference, text) {
   const details = document.createElement("details");
   details.className = "evidence-chart__table";
   const summary = document.createElement("summary");
-  const outside = reference
-    ? points.filter((point) => point.value < reference.p10 || point.value > reference.p90).length
-    : 0;
-  summary.textContent = reference
-    ? `${outside} of ${points.length} days outside the typical range · show values`
-    : `${points.length} days · show values`;
+    summary.textContent = `Show the ${points.length} daily values`;
   const table = document.createElement("table");
   const head = table.createTHead().insertRow();
   for (const label of ["Day", "Value"]) {

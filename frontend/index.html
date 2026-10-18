@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1f5fbf" />
+    <title>Holter · Sign in</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="/shared/styles.css" />
+    <link rel="stylesheet" href="/shared/platform.css" />
+  </head>
+  <body>
+    <main class="signin">
+      <section class="signin__story" aria-labelledby="story-title">
+        <p class="signin__brand">Mental health Holter</p>
+        <div>
+          <h1 id="story-title" class="signin__title">The question arrives while it is happening.</h1>
+          <p class="signin__lead">
+            A band follows heart rate and movement. When something unusual for this person
+            happens and movement does not explain it, their phone asks what they were doing and
+            how they feel. The clinician sees the answer next to the evidence.
+          </p>
+          <svg class="pulse-trace" viewBox="0 0 700 120" aria-hidden="true">
+            <path
+              d="M0 80 H70 L82 70 L92 92 L104 40 L116 96 L128 80 H210 L222 70 L232 92 L244 40 L256 96 L268 80 H350 L362 60 L372 88 L384 22 L396 92 L408 52 L420 64 L432 30 L444 86 L456 58 H520 L532 70 L542 92 L554 40 L566 96 L578 80 H700"
+            />
+            <circle class="pulse-trace__question" cx="432" cy="14" r="7" />
+          </svg>
+        </div>
+        <dl class="signin__facts">
+          <div>
+            <dt>Where the data lives</dt>
+            <dd>IBM LinuxONE, encrypted</dd>
+          </div>
+          <div>
+            <dt>When it asks</dt>
+            <dd>In the moment, not days later</dd>
+          </div>
+          <div>
+            <dt>Who decides</dt>
+            <dd>Always the clinician</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="signin__form-side">
+        <form id="signin-form" class="signin-form" novalidate>
+          <h2>Sign in</h2>
+          <p class="muted">Patients and clinicians use the same door.</p>
+          <p id="signin-reason" class="notice" role="status" hidden></p>
+
+          <label class="signin-form__field">
+            Username
+            <input
+              id="username"
+              name="username"
+              class="text-input"
+              autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
+              required
+            />
+          </label>
+          <label class="signin-form__field">
+            Password
+            <input
+              id="password"
+              name="password"
+              class="text-input"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+
+          <button id="signin-button" class="button button--primary" type="submit">Sign in</button>
+          <label class="signin-form__offline">
+            <input id="offline" type="checkbox" />
+            Use offline demo data (no connection to LinuxONE)
+          </label>
+          <p id="signin-error" class="notice notice--alert" role="alert" hidden></p>
+
+          <p class="signin-form__note">
+            Your sign-in is checked on IBM LinuxONE. This page is only the window: no health
+            data is stored in it or on the server that delivers it.
+          </p>
+        </form>
+      </section>
+    </main>
+    <script type="module" src="/signin.js"></script>
+  </body>
+</html>

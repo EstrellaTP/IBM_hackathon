@@ -68,29 +68,34 @@ function renderOutcome(result) {
   const compatible = result.result === "compatible";
   const label = SUSPICION_LABELS[result.suspicion] ?? result.suspicion;
   const borderline = result.confidence < BORDERLINE_CONFIDENCE;
+  const quality = result.data_quality ?? {};
 
   const box = element("div", `outcome ${compatible ? "outcome--compatible" : "outcome--not"}`);
-  const heading = element(
-    "p",
-    "outcome__title",
-    `Signals ${compatible ? "compatible" : "not compatible"} with ${label}`,
+  const meta = element("p", "outcome__meta");
+  meta.append(
+    element("span", "", `Patient ${result.patient_id}`),
+    element("span", "", `${quality.valid_days ?? "—"} valid days`),
   );
-  const confidence = element(
-    "p",
-    "outcome__confidence",
-    `Confidence ${Math.round(result.confidence * 100)} %${borderline ? " · borderline" : ""}`,
+  box.append(
+    meta,
+    element("p", "outcome__title", `Pattern ${compatible ? "compatible" : "not compatible"} with ${label}`),
   );
-  box.append(heading, confidence);
 
-  if (!compatible) {
-    box.append(
-      element(
-        "p",
-        "outcome__note",
-        "Not compatible does not rule anything out: the recording did not show the pattern.",
-      ),
-    );
-  }
+  const percent = Math.round(result.confidence * 100);
+  const confidence = element("div", "confidence");
+  const track = element("div", "confidence__track");
+  const fill = element("div", "confidence__fill");
+  fill.style.width = `${percent}%`;
+  track.append(fill);
+  track.setAttribute("role", "img");
+  track.setAttribute("aria-label", `Confidence ${percent} %`);
+  confidence.append(
+    element("span", "", "Confidence"),
+    track,
+    element("span", "confidence__value", `${percent} %${borderline ? " · borderline" : ""}`),
+  );
+  box.append(confidence);
+
   if (borderline) {
     box.append(
       element(
@@ -101,10 +106,8 @@ function renderOutcome(result) {
     );
   }
 
-  const quality = result.data_quality ?? {};
   const facts = element("dl", "definition-row");
   for (const [term, value] of [
-    ["Valid days", quality.valid_days],
     ["Missing hours", quality.missing_hours],
     ["Model", result.model_version],
   ]) {
@@ -112,6 +115,38 @@ function renderOutcome(result) {
   }
   box.append(facts);
   return box;
+}
+
+const ACTIVITY_SHORT = {
+  work: "Working",
+  rest: "Resting",
+  social: "With people",
+  commute: "On the move",
+  other: "Something else",
+};
+
+function renderAnswerChips(moments) {
+  const answered = moments.filter((item) => item.answer && !item.answer.safety_action).slice(0, 3);
+  if (answered.length === 0) {
+    return null;
+  }
+  const wrapper = element("section");
+  wrapper.append(element("h3", "evidence-card__title", "What the patient said in the moment"));
+  for (const { episode, answer } of answered) {
+    const chip = element("p", "answer-chip");
+    const time = element("time", "", new Date(episode.detected_at).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }));
+    time.dateTime = episode.detected_at;
+    const parts = [ACTIVITY_SHORT[answer.activity] ?? "Answered"];
+    if (answer.mood_1_5) {
+      parts.push(`feels ${answer.mood_1_5} of 5`);
+    }
+    chip.append(time, element("span", "", parts.join(" · ")));
+    wrapper.append(chip);
+  }
+  return wrapper;
 }
 
 function renderMetricCard(metric, tooltip) {
@@ -127,7 +162,7 @@ function renderMetricCard(metric, tooltip) {
   return card;
 }
 
-function renderResult(container, result, tooltip) {
+function renderResult(container, result, tooltip, moments) {
   const metrics = [...(result.metrics ?? [])].sort(
     (a, b) => METRIC_ORDER.indexOf(a.name) - METRIC_ORDER.indexOf(b.name),
   );
@@ -139,12 +174,21 @@ function renderResult(container, result, tooltip) {
   const legend = element(
     "p",
     "muted evidence-legend",
-    `Line: this patient, one point per valid day. Shaded band: typical range (10th to 90th ` +
-      `percentile, dashed line = median) for ${group ? describeGroup(group) : "the reference group"} ` +
-      "in NHANES. Hollow points fall outside the typical range. " +
+    `Line: this patient, one point per valid day; the last day in orange. Shaded band: ` +
+      `reference range (10th to 90th percentile, dashed line = median) for ${
+        group ? describeGroup(group) : "the reference group"
+      } in NHANES. Hollow points fall outside it. ` +
       '"Evidence" marks the metrics that weighed most in this result.',
   );
-  container.replaceChildren(renderOutcome(result), legend, grid);
+  const chips = renderAnswerChips(moments);
+  const footnote = element(
+    "p",
+    "outcome__footnote",
+    "Not compatible does not mean ruled out. The clinician decides.",
+  );
+  container.replaceChildren(
+    ...[renderOutcome(result), chips, legend, grid, footnote].filter(Boolean),
+  );
 }
 
 /**
@@ -156,8 +200,10 @@ function renderResult(container, result, tooltip) {
  * @param {HTMLElement} options.status - Live region for progress and errors.
  * @param {() => string} options.getPatientId - Returns the selected patient.
  * @param {boolean} options.mock - Use fake data instead of the server.
+ * @param {() => Array<{episode: object, answer: object | null}>} [options.getMoments] -
+ *   The patient's recent moments, shown next to the evidence.
  */
-export function initEvidencePanel({ form, output, status, getPatientId, mock }) {
+export function initEvidencePanel({ form, output, status, getPatientId, mock, getMoments }) {
   const tooltip = element("div", "chart-tooltip");
   tooltip.hidden = true;
   tooltip.setAttribute("role", "tooltip");
@@ -175,7 +221,7 @@ export function initEvidencePanel({ form, output, status, getPatientId, mock }) 
     try {
       const started = performance.now();
       const result = await runModule(request, mock);
-      renderResult(output, result, tooltip);
+      renderResult(output, result, tooltip, getMoments ? getMoments() : []);
       status.textContent = `Module run in ${Math.round(performance.now() - started)} ms.`;
     } catch (error) {
       output.replaceChildren();

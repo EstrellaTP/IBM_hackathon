@@ -34,12 +34,12 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 
 | ID | Tarea | Carril | Estado | Depende de |
 |---|---|---|---|---|
-| F1-BE-01 | `ingest-api`: recibe y valida `SignalBatch`, estampa `ingested_at`, reenvía al detector | APP | ⬜ | F0-COM-01, F0-BE-03 |
-| F1-BE-02 | `store`: tablas de señal, episodios, respuestas y auditoría (append-only); cifrado de campos sensibles con Fernet; clave en `.env` | APP | ⬜ | F0-COM-01 |
-| F1-BE-03 | WebSocket de preguntas (episodio → `/patient`) y endpoint de respuestas (`QuestionAnswer` → store) | APP | ⬜ | F1-BE-01, F1-BE-02 |
+| F1-BE-01 | `ingest-api`: recibe y valida `SignalBatch`, estampa `ingested_at`, reenvía al detector | CC (cogida de APP) | 🟡 CC | F0-COM-01, F0-BE-03 |
+| F1-BE-02 | `store`: tablas de señal, episodios, respuestas y auditoría (append-only); cifrado de campos sensibles con Fernet; clave en `.env` | CC (cogida de APP) | 🟡 CC | F0-COM-01 |
+| F1-BE-03 | WebSocket de preguntas (episodio → `/patient`) y endpoint de respuestas (`QuestionAnswer` → store) | CC (cogida de APP) | 🟡 CC | F1-BE-01, F1-BE-02 |
 | F1-ML-01 | Detector v1: ventana deslizante, z-score móvil frente a línea base personal, regla de movimiento, antirrebote, severidad `extreme`; regla fija `HR > 100` como comparación. Tests con datos sintéticos | APP | ✅ | F0-COM-01, F0-ML-02 |
 | F1-ML-02 | Ajustar umbrales del detector con WESAD real (tramo base frente a estrés) y anotar valores en `DECISIONS.md` | CC | ✅ | F1-ML-01, F0-ML-03 |
-| F1-BE-04 | `tools/simulator`: un paciente de WESAD (o sintético) a velocidad real enviando `SignalBatch` | APP | ⬜ | F0-COM-01, F0-ML-02 |
+| F1-BE-04 | `tools/simulator`: un paciente de WESAD (o sintético) a velocidad real enviando `SignalBatch` | CC (cogida de APP) | 🟡 CC | F0-COM-01, F0-ML-02 |
 | F1-FE-01 | `/patient`: recibe pregunta por WebSocket, envía respuesta (actividad + ánimo 1–5); aviso "replayed WESAD data" | APP | 🟡 APP | F0-FE-01, F1-BE-03 |
 | F1-FE-02 | `/clinician`: línea de tiempo de episodios con la respuesta de cada uno y timestamps por etapa | APP | 🟡 APP | F0-FE-01, F1-BE-03 |
 | F1-BE-05 | TLS en la VM (certificado autofirmado vale) y despliegue de la Fase 1 en LinuxONE; prueba con el móvil real | CC | ⬜ | F1-BE-01…03, F1-FE-01 |

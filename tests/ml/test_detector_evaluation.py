@@ -89,3 +89,9 @@ def test_loso_prefix_keeps_eda_and_hr_only_candidates_apart():
             _run("B", "zscore_x", 1, 0), _run("B", "hronly_y", 0, 0)]  # fmt: skip
     _, choices = ev.leave_one_subject_out(pd.DataFrame([vars(r) for r in rows]), "hronly_")
     assert set(choices["chosen_config"]) == {"hronly_y"}
+
+
+def test_iforest_grid_varies_the_anomaly_threshold():
+    configs = ev.iforest_grid_configs()
+    assert all(name.startswith(ev.IFOREST_PREFIX) for name in configs)
+    assert {c.score_threshold for c in configs.values()} == set(ev.IFOREST_SCORE_THRESHOLDS)

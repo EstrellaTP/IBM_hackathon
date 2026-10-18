@@ -44,6 +44,7 @@ from pathlib import Path
 import pandas as pd
 
 from ml.data import loaders
+from ml.models.iforest_detector import IsolationForestConfig, IsolationForestDetector
 from services.common.schemas import EpisodeEvent
 from services.detector.core import DetectorConfig, FixedRuleDetector, PatientDetector
 
@@ -79,6 +80,9 @@ HR_ONLY_DEFAULT_NAME = "hronly_default"
 # Heart-rate-only bands (e.g. a Polar H10): EDA is removed from the input and the
 # threshold used without EDA is tuned on its own (issue #6).
 HR_ONLY_THRESHOLDS = (2.0, 2.5, 3.0, 3.5, 4.0, 4.5)
+IFOREST_PREFIX = "iforest_"
+# Anomaly-score thresholds explored for the Isolation Forest detector (method B).
+IFOREST_SCORE_THRESHOLDS = (0.55, 0.6, 0.65, 0.7)
 # Detector v1 as first written in F1-ML-01, kept as a fixed reference point after
 # the defaults were updated from this evaluation.
 V1_CONFIG = DetectorConfig(
@@ -251,6 +255,14 @@ def hr_only_grid_configs() -> dict[str, DetectorConfig]:
     return configs
 
 
+def iforest_grid_configs() -> dict[str, IsolationForestConfig]:
+    """Isolation Forest configurations explored (score threshold only)."""
+    return {
+        f"{IFOREST_PREFIX}s{threshold}": IsolationForestConfig(score_threshold=threshold)
+        for threshold in IFOREST_SCORE_THRESHOLDS
+    }
+
+
 def _detection_times(episodes: Iterable[EpisodeEvent], window_s: float, origin) -> list[float]:
     """Return each episode's detection instant in seconds since ``origin``."""
     return [(episode.start - origin).total_seconds() + window_s for episode in episodes]
@@ -280,6 +292,12 @@ def evaluate_subject(subject: str) -> list[RunResult]:
     runs += [(name, config, without_eda) for name, config in hr_only_grid_configs().items()]
     for name, config, inputs in runs:
         episodes = PatientDetector(patient_id, config).process(inputs)
+        times = _detection_times(episodes, config.window_seconds, origin)
+        result = score_episodes(subject, name, times, stress, total_s)
+        result.false_alarm_conditions = false_alarm_conditions(times, stress, conditions, origin)
+        results.append(result)
+    for name, config in iforest_grid_configs().items():
+        episodes = IsolationForestDetector(patient_id, config).process(samples)
         times = _detection_times(episodes, config.window_seconds, origin)
         result = score_episodes(subject, name, times, stress, total_s)
         result.false_alarm_conditions = false_alarm_conditions(times, stress, conditions, origin)
@@ -361,6 +379,7 @@ def build_report(runs: pd.DataFrame) -> str:
     """Render the Markdown report from all runs."""
     held_out, choices = leave_one_subject_out(runs)
     hr_only_held_out, hr_only_choices = leave_one_subject_out(runs, HR_ONLY_PREFIX)
+    iforest_held_out, iforest_choices = leave_one_subject_out(runs, IFOREST_PREFIX)
 
     def _metrics_of(name: str) -> dict[str, float]:
         return pooled_metrics(runs[runs["config_name"] == name])
@@ -381,11 +400,19 @@ def build_report(runs: pd.DataFrame) -> str:
                 "method": "HR-only band (EDA removed), deployed defaults (in-sample)",
                 **_metrics_of(HR_ONLY_DEFAULT_NAME),
             },
+            {
+                "method": "Isolation Forest per patient (method B), threshold chosen by LOSO",
+                **pooled_metrics(iforest_held_out),
+            },
             {"method": "Fixed rule HR > 100 bpm", **_metrics_of(FIXED_RULE_NAME)},
         ]
     )
     most_chosen = pd.concat(
-        [choices["chosen_config"], hr_only_choices["chosen_config"]]
+        [
+            choices["chosen_config"],
+            hr_only_choices["chosen_config"],
+            iforest_choices["chosen_config"],
+        ]
     ).value_counts()
     compared = [DEFAULT_NAME, V1_NAME, FIXED_RULE_NAME]
     per_subject = runs[runs["config_name"].isin(compared)].pivot(

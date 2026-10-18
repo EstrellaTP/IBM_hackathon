@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from ml.data import synthetic
 from tools.simulator.replay import schedule_batches, stress_start_seconds
+from tools.simulator.simulate import parse_args
 
 NOW = datetime(2026, 10, 18, 12, 0, tzinfo=timezone.utc)
 
@@ -40,3 +43,9 @@ def test_until_limits_the_replay():
     stream = synthetic.wesad_wrist_stream(duration_s=600, periods=(), seed=1)
     batches = list(schedule_batches(stream, NOW, batch_seconds=60, until_s=120))
     assert len(batches) == 2
+
+
+def test_simulator_rejects_a_patient_id_that_is_not_a_pseudonym():
+    with pytest.raises(SystemExit):
+        parse_args(["--synthetic", "--patient-id", "p_dem0010"])
+    assert parse_args(["--synthetic", "--patient-id", "p_dec0010"]).patient_id == "p_dec0010"

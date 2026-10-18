@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import re
 import sys
 from dataclasses import dataclass, field
 
@@ -26,7 +27,13 @@ import httpx
 import pandas as pd
 
 from ml.data import loaders, synthetic
-from services.common.schemas import Device, SignalBatch, new_patient_id, utcnow
+from services.common.schemas import (
+    PATIENT_ID_PATTERN,
+    Device,
+    SignalBatch,
+    new_patient_id,
+    utcnow,
+)
 from tools.simulator.replay import schedule_batches, stress_start_seconds
 
 logger = logging.getLogger("simulator")
@@ -170,6 +177,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args(argv)
+    if args.patient_id and not re.fullmatch(PATIENT_ID_PATTERN, args.patient_id):
+        parser.error(f"--patient-id must match {PATIENT_ID_PATTERN} (p_ + hex), e.g. p_dec0010")
     args.patients = max(args.patients, 1)
     return args
 

@@ -22,7 +22,7 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 | F0-ML-01 | Scripts de descarga en `ml/data/download_*.py` (NHANES PAXMIN/DPQ/DEMO ciclos G y H, DEPRESJON, enfermeras, WESAD). Datos a `ml/data/raw/` (no se suben). **Descargar directamente en la VM** (los datos de salud viven en LinuxONE) tras comprobar espacio con `df -h`: `PAXMIN` minuto a minuto ocupa varios GB por ciclo y WESAD ~2 GB; si no cabe, procesar `PAXMIN` por trozos y quedarse solo con las columnas necesarias, empezando por el ciclo H | CC | ✅ | — |
 | F0-ML-02 | Loaders reproducibles en `ml/data/loaders.py` con orden de bytes explícito + generador de datos sintéticos con el mismo formato (para tests y para `[APP]`) | CC (cogida de APP) | ✅ | — |
 | F0-ML-03 | Ejecutar loaders con datos reales; anotar en `HANDOFF.md` formas, columnas reales y sorpresas | CC | ✅ | F0-ML-01, F0-ML-02 |
-| F0-FE-01 | Esqueleto `frontend/patient` y `frontend/clinician` (HTML + JS) con datos falsos que cumplen los contratos | APP | ⬜ | F0-COM-01 |
+| F0-FE-01 | Esqueleto `frontend/patient` y `frontend/clinician` (HTML + JS) con datos falsos que cumplen los contratos | APP | 🟡 APP | F0-COM-01 |
 | F0-HUM-01 | Decidir nombre definitivo (MindHolter es provisional) y licencia (MIT por defecto) → `DECISIONS.md` | HUM | ⬜ | — |
 | F0-HUM-02 | Confirmar si alguien tiene wearable compatible (Polar H10, Garmin/Polar con emisión de FC) | HUM | ⬜ | — |
 
@@ -40,8 +40,8 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 | F1-ML-01 | Detector v1: ventana deslizante, z-score móvil frente a línea base personal, regla de movimiento, antirrebote, severidad `extreme`; regla fija `HR > 100` como comparación. Tests con datos sintéticos | APP | ✅ | F0-COM-01, F0-ML-02 |
 | F1-ML-02 | Ajustar umbrales del detector con WESAD real (tramo base frente a estrés) y anotar valores en `DECISIONS.md` | CC | ✅ | F1-ML-01, F0-ML-03 |
 | F1-BE-04 | `tools/simulator`: un paciente de WESAD (o sintético) a velocidad real enviando `SignalBatch` | APP | ⬜ | F0-COM-01, F0-ML-02 |
-| F1-FE-01 | `/patient`: recibe pregunta por WebSocket, envía respuesta (actividad + ánimo 1–5); aviso "replayed WESAD data" | APP | ⬜ | F0-FE-01, F1-BE-03 |
-| F1-FE-02 | `/clinician`: línea de tiempo de episodios con la respuesta de cada uno y timestamps por etapa | APP | ⬜ | F0-FE-01, F1-BE-03 |
+| F1-FE-01 | `/patient`: recibe pregunta por WebSocket, envía respuesta (actividad + ánimo 1–5); aviso "replayed WESAD data" | APP | 🟡 APP | F0-FE-01, F1-BE-03 |
+| F1-FE-02 | `/clinician`: línea de tiempo de episodios con la respuesta de cada uno y timestamps por etapa | APP | 🟡 APP | F0-FE-01, F1-BE-03 |
 | F1-BE-05 | TLS en la VM (certificado autofirmado vale) y despliegue de la Fase 1 en LinuxONE; prueba con el móvil real | CC | ⬜ | F1-BE-01…03, F1-FE-01 |
 | F1-DOC-01 | `docs/architecture.md` con diagrama definitivo | APP | ⬜ | — |
 | F1-HUM-01 | Probar el flujo en un móvil real y grabar un clip de prueba | HUM | ⬜ | F1-BE-05 |

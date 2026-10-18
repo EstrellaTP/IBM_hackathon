@@ -47,3 +47,12 @@ def test_reference_ranges_are_grouped_by_sex_and_age():
     assert band["p10"] <= band["p50"] <= band["p90"] and band["people"] == 2
     assert "M_70+" in result["ranges"]["circadian_rhythm"]
     assert result["heart_rate"] is None
+
+
+def test_daytime_activity_is_continuous_and_lower_on_a_slower_day():
+    def slower_day_2(day, hour):
+        return _square_wave(day, hour) * (0.5 if day == 2 else 1.0)
+
+    days = daily.daily_metrics(_series(3, slower_day_2))
+    values = days.set_index("day")["daytime_activity"]
+    assert values[2] < values[1] and 0 < values[2] < 1

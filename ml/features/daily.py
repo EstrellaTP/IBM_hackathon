@@ -7,7 +7,10 @@ day against an age- and sex-specific reference band (CLAUDE.md section 5.2). NHA
 
 * ``sleep``: hours of the day with activity below 0.1·M10 (rest/sleep proxy, hours).
 * ``circadian_rhythm``: relative amplitude of that day, (M10 − L5) / (M10 + L5), 0–1.
-* ``daytime_activity``: share of 08:00–22:00 hours with activity at least 0.25·M10, 0–1.
+* ``daytime_activity``: mean activity of 08:00–22:00 divided by the person's M10
+  (typical active level), so about 1 on a usually active day and lower on a
+  slower one. A first version counted hours above 0.25·M10 and saturated at 1
+  for most NHANES adults (p50 0.93–0.96), which made the chart uninformative.
 
 ``heart_rate`` has no reference: NHANES does not record it.
 """
@@ -21,7 +24,7 @@ from ml.features import circadian
 
 DAILY_METRICS = ["sleep", "circadian_rhythm", "daytime_activity"]
 DAILY_COLUMNS = ["day", *DAILY_METRICS]
-METRIC_UNITS = {"sleep": "h/day", "circadian_rhythm": "0-1", "daytime_activity": "share"}
+METRIC_UNITS = {"sleep": "h/day", "circadian_rhythm": "0-1", "daytime_activity": "x own M10"}
 
 
 def _day_relative_amplitude(day: pd.DataFrame) -> float:
@@ -56,10 +59,8 @@ def daily_metrics(hourly: pd.DataFrame) -> pd.DataFrame:
                 "day": int(day),
                 "sleep": float((group["activity"] < circadian.REST_FRACTION_OF_M10 * m10).sum()),
                 "circadian_rhythm": float(_day_relative_amplitude(group)),
-                "daytime_activity": float(
-                    (daytime["activity"] >= circadian.SEDENTARY_FRACTION_OF_M10 * m10).mean()
-                )
-                if len(daytime)
+                "daytime_activity": float(daytime["activity"].mean() / m10)
+                if len(daytime) and m10 > 0
                 else np.nan,
             }
         )

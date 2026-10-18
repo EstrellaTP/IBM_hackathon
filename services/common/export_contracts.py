@@ -63,7 +63,13 @@ def examples() -> dict:
             ),
         ),
         "QuestionAnswer": s.QuestionAnswer(
-            episode_id=eid, activity="work", mood_1_5=2, answered_at=t0 + timedelta(seconds=20)
+            episode_id=eid,
+            activity="work",
+            mood_1_5=2,
+            details=s.AnswerDetails(
+                workload="demanding", emotion="anxious", something_happened=True
+            ),
+            answered_at=t0 + timedelta(seconds=20),
         ),
         "ModuleRequest": s.ModuleRequest(
             patient_id=pid,

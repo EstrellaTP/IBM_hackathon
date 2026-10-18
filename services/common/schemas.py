@@ -13,10 +13,11 @@ from __future__ import annotations
 import secrets
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 
 PATIENT_ID_PATTERN = r"^p_[0-9a-f]{4,32}$"
 EPISODE_ID_PATTERN = r"^e_[0-9a-f]{4,32}$"
@@ -82,6 +83,7 @@ class DetectionMethod(str, Enum):
 class Activity(str, Enum):
     """What the patient says they were doing when the episode happened."""
 
+    EXERCISE = "exercise"  # added in 1.1.0: physical activity, with follow-up questions
     WORK = "work"
     REST = "rest"
     SOCIAL = "social"
@@ -192,6 +194,32 @@ class EpisodeEvent(_Contract):
     _tz = field_validator("start", "detected_at")(_require_tz)
 
 
+class AnswerDetails(_Contract):
+    """Follow-up answers shown after the main ones (added in 1.1.0).
+
+    The phone only asks the follow-ups of the activity the patient picked (for
+    example intensity for ``exercise``), so every field is optional. Values are
+    closed lists so the clinician view can show them without free text about the
+    patient (CLAUDE.md section 5.5).
+    """
+
+    # Activity follow-ups.
+    exercise_intensity: Literal["light", "moderate", "vigorous"] | None = None
+    usual_for_you: bool | None = None  # is this activity usual for the patient at this time?
+    workload: Literal["light", "normal", "demanding"] | None = None
+    rest_state: Literal["awake", "falling_asleep", "just_woke_up"] | None = None
+    company: Literal["family", "partner", "friends", "colleagues", "strangers"] | None = None
+    social_tone: Literal["pleasant", "neutral", "tense"] | None = None
+    travel_mode: Literal["walking", "cycling", "public_transport", "car"] | None = None
+    in_a_hurry: bool | None = None
+    # Mood follow-ups.
+    emotion: (
+        Literal["calm", "happy", "energetic", "tired", "sad", "anxious", "irritable", "overwhelmed"]
+        | None
+    ) = None
+    something_happened: bool | None = None  # did something happen just before?
+
+
 class QuestionAnswer(_Contract):
     """Phone -> store. The patient's in-the-moment answer, linked to its episode."""
 
@@ -199,6 +227,7 @@ class QuestionAnswer(_Contract):
     activity: Activity | None = None
     activity_text: str | None = Field(default=None, max_length=280)
     mood_1_5: int | None = Field(default=None, ge=1, le=5)
+    details: AnswerDetails | None = None
     safety_action: SafetyAction | None = None
     answered_at: datetime
 

@@ -13,12 +13,62 @@ import { formatClock, millisecondsBetween } from "./api-client.js";
 
 /** Human labels for the Activity enum (services/common/schemas.py). */
 export const ACTIVITY_LABELS = {
+  exercise: "Physical activity",
   work: "Working or studying",
   rest: "Resting",
   social: "With other people",
   commute: "On the move",
   other: "Something else",
 };
+
+/** Human labels for the AnswerDetails follow-ups, in the order they are asked. */
+export const DETAIL_LABELS = {
+  exercise_intensity: { light: "light intensity", moderate: "moderate intensity", vigorous: "intense" },
+  usual_for_you: { true: "usual for them at this time", false: "not usual at this time" },
+  workload: { light: "calm workload", normal: "normal workload", demanding: "very demanding workload" },
+  rest_state: { awake: "awake", falling_asleep: "trying to sleep", just_woke_up: "just woke up" },
+  company: {
+    family: "with family",
+    partner: "with partner",
+    friends: "with friends",
+    colleagues: "with colleagues",
+    strangers: "with people they don't know",
+  },
+  social_tone: { pleasant: "pleasant", neutral: "neutral", tense: "tense" },
+  travel_mode: {
+    walking: "walking",
+    cycling: "cycling",
+    public_transport: "public transport",
+    car: "by car",
+  },
+  in_a_hurry: { true: "in a hurry", false: "not in a hurry" },
+  emotion: {
+    calm: "calm",
+    happy: "happy",
+    energetic: "energetic",
+    tired: "tired",
+    sad: "sad",
+    anxious: "nervous",
+    irritable: "irritable",
+    overwhelmed: "overwhelmed",
+  },
+  something_happened: { true: "something happened just before", false: "nothing happened before" },
+};
+
+/**
+ * Turn an answer's follow-up details into short phrases.
+ *
+ * @param {object | null | undefined} details - AnswerDetails contract object.
+ * @returns {string[]} One phrase per answered follow-up.
+ */
+export function describeDetails(details) {
+  if (!details) {
+    return [];
+  }
+  return Object.entries(DETAIL_LABELS)
+    .filter(([key]) => details[key] !== null && details[key] !== undefined)
+    .map(([key, labels]) => labels[String(details[key])] ?? String(details[key]));
+}
 
 const SAFETY_LABELS = {
   call_112_simulated: "Pressed “Call 112” (simulated, nobody was called)",
@@ -69,6 +119,7 @@ function describeAnswer(answer) {
   if (answer.activity) {
     parts.push(ACTIVITY_LABELS[answer.activity] ?? answer.activity);
   }
+  parts.push(...describeDetails(answer.details));
   if (answer.activity_text) {
     parts.push(`“${answer.activity_text}”`);
   }

@@ -59,7 +59,7 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 | F2-ML-03 | `ml/models/train.py`: logística, RF, LightGBM; `GroupKFold` por persona; calibración; métricas MCC/F1/sens/espec/AUC; diagrama de fiabilidad. Código y tests | CC (cogida de APP) | ✅ | F2-ML-01 |
 | F2-ML-04 | Entrenar con NHANES real, probar en DEPRESJON (LOSO), guardar modelo portable y `ml/reports/metrics.md` | CC | ✅ | F2-ML-02, F2-ML-03 |
 | F2-ML-05 | SHAP por paciente → `is_evidence` (top 3–4); plan B si SHAP no instala | APP | ⬜ | F2-ML-03 |
-| F2-BE-01 | `suspicion-module` (recibe `ModuleRequest`, devuelve `ModuleResult`; modelo dummy hasta F2-ML-04) y `evidence-api`; auditoría por inferencia | APP | ⬜ | F0-COM-01 |
+| F2-BE-01 | `suspicion-module` (recibe `ModuleRequest`, devuelve `ModuleResult`; modelo dummy hasta F2-ML-04) y `evidence-api`; auditoría por inferencia | CC (cogida de APP) | 🟡 CC | F0-COM-01 |
 | F2-FE-01 | Panel de evidencias: selector de sospecha, resultado + confianza, 4 gráficas con banda de referencia y evidencia marcada, calidad del registro, aviso "not compatible ≠ ruled out" | APP | ⬜ | F0-FE-01 |
 | F2-BE-02 | Desplegar Fase 2 en la VM con el modelo real; comparar una predicción portátil frente a VM (big-endian) | CC | ⬜ | F2-ML-04, F2-BE-01 |
 | F2-DOC-01 | Guion del vídeo (≤ 3 min) con problema, cifra, demo y LinuxONE | APP | ⬜ | — |

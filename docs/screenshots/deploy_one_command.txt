@@ -1,0 +1,16 @@
+# One-command deployment from a fresh directory on the LinuxONE VM (2026-10-18)
+$ VM_DIR=holter-clean scripts/deploy_vm.sh   # real time 2m11s, run from the laptop
+.
+..
+certs
+docker-compose.yml
+.env
+env.example
+gateway
+SERVICE            IMAGE                     STATUS                        PORTS
+detector           holter-detector           Up About a minute (healthy)   8000/tcp
+evidence-api       holter-evidence-api       Up 46 seconds (healthy)       8000/tcp
+gateway            holter-gateway            Up 30 seconds (healthy)       8080/tcp, 0.0.0.0:8443->8443/tcp, [::]:8443->8443/tcp
+ingest-api         holter-ingest-api         Up 46 seconds (healthy)       8000/tcp
+store              holter-store              Up About a minute (healthy)   8000/tcp
+suspicion-module   holter-suspicion-module   Up 46 seconds (healthy)       8000/tcp

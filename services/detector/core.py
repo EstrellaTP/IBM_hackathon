@@ -67,7 +67,10 @@ class DetectorConfig:
         baseline_alpha: Weight of each new calm window in the exponentially
             weighted baseline. 0.02 gives an effective memory of ~50 windows
             (~8 minutes), long enough to ignore short fluctuations.
-        hr_z_threshold: Heart-rate z-score above which a window is unusual.
+        hr_z_threshold: Heart-rate z-score above which a window is unusual, when
+            the band also measures EDA (the EDA check removes false alarms).
+        hr_z_threshold_without_eda: Same threshold for windows without EDA
+            (heart-rate-only bands), stricter because the EDA safeguard is missing.
         hr_z_extreme: Heart-rate z-score that switches the question to the
             safety protocol ("Are you OK?").
         activity_z_max: Maximum activity z-score for the heart rate to count as
@@ -96,6 +99,7 @@ class DetectorConfig:
     # (F1-ML-02, ml/reports/detector_wesad.md): the same values won in 12 of 15 folds.
     # v1 used hr_z_threshold=3.0, activity_z_max=1.0, no look-back and no EDA check.
     hr_z_threshold: float = 2.0
+    hr_z_threshold_without_eda: float = 3.0
     hr_z_extreme: float = 6.0
     activity_z_max: float = 0.5
     min_std_hr_bpm: float = 2.0
@@ -221,6 +225,7 @@ class PatientDetector:
     _calm_windows: int = field(default=0, init=False)
     _next_evaluation: datetime | None = field(default=None, init=False, repr=False)
     _last_episode_at: datetime | None = field(default=None, init=False, repr=False)
+    _last_extreme_at: datetime | None = field(default=None, init=False, repr=False)
     _recent_activity_z: deque[tuple[datetime, float]] = field(
         default_factory=deque, init=False, repr=False
     )
@@ -287,7 +292,12 @@ class PatientDetector:
             else None
         )
 
-        unusual_heart_rate = hr_z >= cfg.hr_z_threshold
+        threshold = cfg.hr_z_threshold if eda_z is not None else cfg.hr_z_threshold_without_eda
+        unusual_heart_rate = hr_z >= threshold
+        # Safety protocol (CLAUDE.md section 5.4): an extreme value that movement
+        # does not explain must always reach the patient, so it skips the EDA check
+        # and the normal cool-down (it has its own, see _in_cooldown).
+        extreme = hr_z >= cfg.hr_z_extreme
         explained_by_movement = (
             self._recent_max_activity_z(summary.end, activity_z) > cfg.activity_z_max
         )
@@ -301,13 +311,15 @@ class PatientDetector:
         if explained_by_movement:
             logger.debug("patient=%s high HR explained by movement", self.patient_id)
             return None
-        if eda_z is not None and eda_z < cfg.eda_z_min:
+        if not extreme and eda_z is not None and eda_z < cfg.eda_z_min:
             logger.debug("patient=%s high HR without EDA response", self.patient_id)
             return None
-        if self._in_cooldown(summary.end):
+        if self._in_cooldown(summary.end, extreme):
             return None
 
         self._last_episode_at = summary.end
+        if extreme:
+            self._last_extreme_at = summary.end
         features = {"hr_z": round(hr_z, 3), "acc_mag_z": round(activity_z, 3)}
         if eda_z is not None:
             features["eda_z"] = round(eda_z, 3)
@@ -315,7 +327,7 @@ class PatientDetector:
             patient_id=self.patient_id,
             start=summary.end - timedelta(seconds=cfg.window_seconds),
             detected_at=utcnow(),
-            severity=Severity.EXTREME if hr_z >= cfg.hr_z_extreme else Severity.NORMAL,
+            severity=Severity.EXTREME if extreme else Severity.NORMAL,
             score=round(hr_z, 3),
             method=DetectionMethod.ZSCORE,
             features=features,
@@ -352,10 +364,16 @@ class PatientDetector:
             self._eda_stats.update(summary.eda)
         self._calm_windows += 1
 
-    def _in_cooldown(self, now: datetime) -> bool:
-        if self._last_episode_at is None:
+    def _in_cooldown(self, now: datetime, extreme: bool = False) -> bool:
+        """Whether a question was sent too recently to ask again.
+
+        Extreme episodes only wait for the previous *extreme* one: a normal question
+        a minute ago must not delay the safety protocol.
+        """
+        last = self._last_extreme_at if extreme else self._last_episode_at
+        if last is None:
             return False
-        return now - self._last_episode_at < timedelta(seconds=self.config.cooldown_seconds)
+        return now - last < timedelta(seconds=self.config.cooldown_seconds)
 
 
 # Heart rate above which the naive rule fires. 100 bpm is the conventional

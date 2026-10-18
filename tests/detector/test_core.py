@@ -19,6 +19,9 @@ from services.detector.core import (
 from services.detector.settings import load_config
 
 T0 = datetime(2026, 10, 18, 9, 0, tzinfo=timezone.utc)
+# A rise to 80 bpm over a 70 bpm baseline is unusual (z ~5) but below the extreme
+# threshold (z 6), so it tests the normal question, not the safety protocol.
+NORMAL_RISE_BPM = 80
 # Stress raises EDA together with heart rate; the detector requires both by default.
 STRESS_EDA = 1.0
 PATIENT = "p_0a1b2c3d"
@@ -78,7 +81,7 @@ def test_no_episode_before_baseline_is_ready():
 def test_detects_heart_rate_rise_without_movement():
     detector, start = calibrated()
     episodes = detector.process(
-        make_signal(120, heart_rate=95, start=start, seed=2, eda=STRESS_EDA)
+        make_signal(120, heart_rate=NORMAL_RISE_BPM, start=start, seed=2, eda=STRESS_EDA)
     )
     assert len(episodes) == 1
     episode = episodes[0]
@@ -110,21 +113,21 @@ def test_personal_baseline_detects_rise_the_fixed_rule_misses():
     detector, start = calibrated()
     rule = FixedRuleDetector(PATIENT)
     rule.process(make_signal(600, heart_rate=70))
-    rise = make_signal(120, heart_rate=95, start=start, seed=4, eda=STRESS_EDA)
+    rise = make_signal(120, heart_rate=NORMAL_RISE_BPM, start=start, seed=4, eda=STRESS_EDA)
     assert len(detector.process(rise)) == 1
     assert rule.process(rise) == []
 
 
 def test_cooldown_prevents_repeated_questions():
     detector, start = calibrated()
-    sustained = make_signal(9 * 60, heart_rate=95, start=start, seed=5, eda=STRESS_EDA)
+    sustained = make_signal(9 * 60, heart_rate=NORMAL_RISE_BPM, start=start, seed=5, eda=STRESS_EDA)
     assert len(detector.process(sustained)) == 1
 
 
 def test_asks_again_after_cooldown():
     config = DetectorConfig(cooldown_seconds=120)
     detector, start = calibrated(config)
-    sustained = make_signal(6 * 60, heart_rate=95, start=start, seed=6, eda=STRESS_EDA)
+    sustained = make_signal(6 * 60, heart_rate=NORMAL_RISE_BPM, start=start, seed=6, eda=STRESS_EDA)
     assert len(detector.process(sustained)) >= 2
 
 
@@ -138,7 +141,7 @@ def test_extreme_rise_triggers_safety_severity():
 
 def test_episode_does_not_contaminate_baseline():
     detector, start = calibrated()
-    detector.process(make_signal(300, heart_rate=95, start=start, seed=8))
+    detector.process(make_signal(300, heart_rate=NORMAL_RISE_BPM, start=start, seed=8))
     baseline_mean = detector._hr_stats.mean
     assert baseline_mean == pytest.approx(70, abs=1.5)
 
@@ -203,7 +206,7 @@ def test_movement_lookback_still_detects_episode_long_after_movement():
 
 def test_eda_requirement_ignores_heart_rate_rise_without_eda_response():
     detector, start = calibrated(DetectorConfig(eda_z_min=1.0))
-    surge = make_signal(120, heart_rate=105, start=start, seed=10)  # EDA stays flat
+    surge = make_signal(120, heart_rate=NORMAL_RISE_BPM, start=start, seed=10)  # flat EDA
     assert detector.process(surge) == []
 
 
@@ -218,3 +221,33 @@ def test_default_config_does_not_ask_after_climbing_stairs_and_sitting_down():
     # sitting down. With the deployed defaults no question must be sent.
     detector, start = calibrated()
     assert _walk_then_sit(detector, start) == []
+
+
+def test_extreme_rise_without_eda_response_still_triggers_safety():
+    # Safety protocol: HR +40 bpm with no movement and flat EDA must reach the
+    # patient as an extreme episode (issue #6).
+    detector, start = calibrated()
+    episodes = detector.process(make_signal(120, heart_rate=110, start=start, seed=12))
+    assert [e.severity for e in episodes] == [Severity.EXTREME]
+
+
+def test_extreme_episode_is_not_delayed_by_a_recent_normal_question():
+    detector, start = calibrated()
+    normal = make_signal(70, heart_rate=80, start=start, seed=13, eda=STRESS_EDA)
+    extreme_start = start + timedelta(seconds=70)
+    extreme = make_signal(90, heart_rate=115, start=extreme_start, seed=14, eda=STRESS_EDA)
+    first = detector.process(normal)
+    second = detector.process(extreme)
+    assert [e.severity for e in first] == [Severity.NORMAL]
+    assert [e.severity for e in second] == [Severity.EXTREME]
+
+
+def test_heart_rate_only_band_uses_the_stricter_threshold():
+    config = DetectorConfig(hr_z_threshold=2.0, hr_z_threshold_without_eda=4.0)
+    detector, start = calibrated(config)
+    # Without EDA, a rise of z ~3 is below the HR-only threshold of 4.
+    rise = [
+        s.model_copy(update={"eda": None})
+        for s in make_signal(120, heart_rate=76, start=start, seed=15)
+    ]
+    assert detector.process(rise) == []

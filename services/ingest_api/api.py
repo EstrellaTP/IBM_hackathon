@@ -20,6 +20,7 @@ from services.common.schemas import (
     PATIENT_ID_PATTERN,
     EpisodeEvent,
     QuestionAnswer,
+    Severity,
     SignalBatch,
     utcnow,
 )
@@ -121,14 +122,36 @@ async def question_channel(
 
 
 async def _send_pending(websocket: WebSocket, patient_id: str, pipeline: IngestPipeline) -> None:
-    """Re-send recent unanswered questions, e.g. after the phone lost connection."""
+    """On (re)connection, send the single most relevant unanswered recent question.
+
+    If the phone was disconnected (Android freezes backgrounded pages), several
+    episodes may be waiting. Asking about all of them minutes later floods the patient
+    and defeats the in-the-moment question, so only one is sent: an extreme one first
+    (safety protocol), otherwise the newest. The others stay on the clinician's
+    timeline as unanswered (issue #13).
+    """
     with suppress(httpx.HTTPError):
-        for episode in await pipeline.pending_questions(patient_id):
-            first_push = episode.timestamps.pushed_at is None
-            if first_push:
-                episode.timestamps.pushed_at = utcnow()
-            await websocket.send_json(
-                {"type": "question", "episode": episode.model_dump(mode="json")}
-            )
-            if first_push:
-                await pipeline.mark_pushed(episode)
+        pending = await pipeline.pending_questions(patient_id)
+        episode = select_pending_question(pending)
+        if episode is None:
+            return
+        first_push = episode.timestamps.pushed_at is None
+        if first_push:
+            episode.timestamps.pushed_at = utcnow()
+        await websocket.send_json({"type": "question", "episode": episode.model_dump(mode="json")})
+        if first_push:
+            await pipeline.mark_pushed(episode)
+        logger.info(
+            "patient=%s reconnect: sent episode=%s of %d pending",
+            patient_id,
+            episode.episode_id,
+            len(pending),
+        )
+
+
+def select_pending_question(pending: list[EpisodeEvent]) -> EpisodeEvent | None:
+    """Pick the question to send on reconnection: newest extreme, else newest."""
+    if not pending:
+        return None
+    extreme = [e for e in pending if e.severity == Severity.EXTREME]
+    return max(extreme or pending, key=lambda episode: episode.detected_at)

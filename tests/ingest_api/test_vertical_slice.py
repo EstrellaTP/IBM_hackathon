@@ -147,5 +147,28 @@ def test_phone_connecting_late_receives_the_pending_question(stack):
     assert detected and detected[0]["timestamps"]["pushed_at"] is None  # no phone yet
     with ingest.websocket_connect(f"/api/v1/patients/{PATIENT}/questions") as phone:
         message = phone.receive_json()
-    assert message["episode"]["episode_id"] == detected[0]["episode_id"]
+    # Only the most relevant pending question is sent: an extreme one if any, else the
+    # newest (issue #13).
+    expected = [e for e in detected if e["severity"] == "extreme"] or detected
+    assert message["episode"]["episode_id"] == expected[-1]["episode_id"]
     assert message["episode"]["timestamps"]["pushed_at"] is not None
+
+
+def test_reconnection_sends_only_the_most_relevant_pending_question():
+    from datetime import timedelta
+
+    from services.common.schemas import EpisodeEvent, StageTimestamps
+    from services.ingest_api.api import select_pending_question
+
+    def episode(minutes, severity):
+        at = utcnow() - timedelta(minutes=minutes)
+        return EpisodeEvent(
+            patient_id=PATIENT, start=at, detected_at=at, severity=severity, score=3.0,
+            method="zscore", timestamps=StageTimestamps(sample_t=at),
+        )  # fmt: skip
+
+    older_extreme, newest_normal = episode(3, "extreme"), episode(1, "normal")
+    assert select_pending_question([older_extreme, newest_normal]) is older_extreme
+    newer_normal, old_normal = episode(1, "normal"), episode(5, "normal")
+    assert select_pending_question([old_normal, newer_normal]) is newer_normal
+    assert select_pending_question([]) is None

@@ -1,22 +1,19 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "buildCommand": "",
-  "installCommand": "",
-  "outputDirectory": "frontend",
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://148.100.99.58:8443 wss://148.100.99.58:8443; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
-        },
-        { "key": "Referrer-Policy", "value": "no-referrer" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    }
+  "version": 2,
+  "builds": [
+    { "src": "services/ingest_api/main.py", "use": "@vercel/python" },
+    { "src": "services/detector/main.py", "use": "@vercel/python" },
+    { "src": "services/store/main.py", "use": "@vercel/python" },
+    { "src": "services/suspicion_module/main.py", "use": "@vercel/python" },
+    { "src": "services/evidence_api/main.py", "use": "@vercel/python" },
+    { "src": "frontend/**", "use": "@vercel/static" }
+  ],
+  "rewrites": [
+    { "source": "/api/v1/ingest/(.*)", "destination": "/services/ingest_api/main.py" },
+    { "source": "/api/v1/detector/(.*)", "destination": "/services/detector/main.py" },
+    { "source": "/api/v1/store/(.*)", "destination": "/services/store/main.py" },
+    { "source": "/api/v1/suspicion/(.*)", "destination": "/services/suspicion_module/main.py" },
+    { "source": "/api/v1/evidence/(.*)", "destination": "/services/evidence_api/main.py" },
+    { "source": "/(.*)", "destination": "/frontend/$1" }
   ]
 }

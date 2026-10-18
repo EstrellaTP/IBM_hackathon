@@ -35,8 +35,10 @@ export const METRIC_TEXT = {
   },
   daytime_activity: {
     title: "Daytime activity",
-    help: "Share of 08:00–22:00 hours with activity of at least 25 % of the person's active level.",
-    format: (value) => `${Math.round(value * 100)} %`,
+    help:
+      "Mean activity from 08:00 to 22:00 relative to the person's own active level " +
+      "(1 = a usually active day, lower = a slower day).",
+    format: (value) => `${value.toFixed(2)}×`,
   },
   heart_rate: {
     title: "Heart rate",

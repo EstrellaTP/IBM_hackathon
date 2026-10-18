@@ -339,9 +339,9 @@ function mockModuleResult(request) {
       },
       {
         name: "daytime_activity",
-        unit: "share",
-        patient_series: mockSeries(days, 0.88, 0.15, 3),
-        reference: { p10: 0.79, p50: 0.93, p90: 1.0, group },
+        unit: "x own M10",
+        patient_series: mockSeries(days, 0.62, 0.3, 3),
+        reference: { p10: 0.55, p50: 0.78, p90: 1.02, group },
         is_evidence: false,
         shap: 0.05,
         available: true,

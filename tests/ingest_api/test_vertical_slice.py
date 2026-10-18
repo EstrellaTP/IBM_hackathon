@@ -105,12 +105,13 @@ def test_question_reaches_the_phone_during_stress_and_the_answer_reaches_the_cli
     assert stored.status_code == 201
 
     timeline = evidence.get(f"/api/v1/clinician/patients/{PATIENT}/timeline").json()
-    [item] = timeline["items"]
-    assert item["episode"]["episode_id"] == episode["episode_id"]
+    # The synthetic stress may also escalate to the safety protocol (issue #6), so
+    # look the answered episode up by id instead of expecting a single item.
+    [item] = [i for i in timeline["items"] if i["episode"]["episode_id"] == episode["episode_id"]]
     assert item["episode"]["timestamps"]["pushed_at"] is not None
     assert item["answer"]["mood_1_5"] == 2
     [summary] = evidence.get("/api/v1/clinician/patients").json()
-    assert (summary["episodes"], summary["answered"]) == (1, 1)
+    assert summary["episodes"] >= 1 and summary["answered"] == 1
 
     audit = store_api.get_store().list_audit_entries(PATIENT)
     actions = {entry.action for entry in audit}

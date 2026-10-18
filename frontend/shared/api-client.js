@@ -178,6 +178,37 @@ export async function fetchEpisodes(patientId, mock) {
   return body.items ?? [];
 }
 
+/**
+ * Run the suspicion module selected by the clinician on one patient's recording.
+ *
+ * Only the requested module runs on LinuxONE (CLAUDE.md section 5.2).
+ *
+ * @param {object} request - A ModuleRequest contract object.
+ * @param {boolean} mock - Return a fake ModuleResult instead of calling the server.
+ * @returns {Promise<object>} The ModuleResult.
+ * @throws {Error} With a readable message for 404 (no recording), 422 (too few
+ *   valid days) and 503 (model not available).
+ */
+export async function runModule(request, mock) {
+  if (mock) {
+    return mockModuleResult(request);
+  }
+  const response = await fetch(`${API_BASE}/module-runs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(request),
+  });
+  if (response.ok) {
+    return response.json();
+  }
+  const reasons = {
+    404: "There is no recording for this patient.",
+    422: "The selected period has too few valid days to run the module.",
+    503: "The module is not available on the server right now.",
+  };
+  throw new Error(reasons[response.status] ?? `The module could not run (HTTP ${response.status}).`);
+}
+
 // --------------------------------------------------------------------------
 // Mock mode: contract-compliant fake data so the pages work without a backend.
 // --------------------------------------------------------------------------
@@ -261,4 +292,63 @@ function mockEpisodeList(patientId) {
     episode,
     answer: mockStore.answers.get(episode.episode_id) ?? null,
   }));
+}
+
+function mockSeries(days, center, spread, seed) {
+  // Deterministic pseudo-random values so screenshots are stable between runs.
+  let state = seed;
+  const next = () => {
+    state = (state * 9301 + 49297) % 233280;
+    return state / 233280 - 0.5;
+  };
+  const today = Date.now();
+  return Array.from({ length: days }, (_, index) => {
+    const day = new Date(today - (days - 1 - index) * 86400000).toISOString().slice(0, 10);
+    return { day, value: Number((center + spread * next()).toFixed(3)) };
+  });
+}
+
+function mockModuleResult(request) {
+  const days = 14;
+  const group = "F_30-39";
+  return {
+    patient_id: request.patient_id,
+    suspicion: request.suspicion,
+    result: "compatible",
+    confidence: 0.74,
+    model_version: "mock-0",
+    data_quality: { valid_days: days, missing_hours: 24 },
+    metrics: [
+      {
+        name: "sleep",
+        unit: "h/day",
+        patient_series: mockSeries(days, 11.2, 3, 7),
+        reference: { p10: 6.2, p50: 8.1, p90: 10.0, group },
+        is_evidence: true,
+        shap: 0.41,
+        available: true,
+      },
+      {
+        name: "circadian_rhythm",
+        unit: "0-1",
+        patient_series: mockSeries(days, 0.62, 0.25, 11),
+        reference: { p10: 0.71, p50: 0.84, p90: 0.93, group },
+        is_evidence: true,
+        shap: 0.33,
+        available: true,
+      },
+      {
+        name: "daytime_activity",
+        unit: "share",
+        patient_series: mockSeries(days, 0.88, 0.15, 3),
+        reference: { p10: 0.79, p50: 0.93, p90: 1.0, group },
+        is_evidence: false,
+        shap: 0.05,
+        available: true,
+      },
+      { name: "heart_rate", unit: "bpm", patient_series: [], reference: null, available: false },
+    ],
+    episodes: [],
+    generated_at: new Date().toISOString(),
+  };
 }

@@ -1,15 +1,16 @@
 /**
- * Clinician page, Phase 1: timeline of episodes with the patient's answers.
+ * Clinician page: suspicion module evidence and the timeline of episodes.
  *
  * Shows, for each episode, when it happened, how unusual it was for this
  * patient, what the patient answered in the moment, and how long each stage
  * took (to make the LinuxONE latency visible in the demo). It never shows
  * generated text about the patient (CLAUDE.md section 5.5). The evidence
- * charts of the suspicion module are added in Phase 2 (F2-FE-01).
+ * panel of the suspicion module lives in evidence-panel.js (F2-FE-01).
  *
  * @module clinician
  */
 
+import { initEvidencePanel } from "./evidence-panel.js";
 import {
   fetchEpisodes,
   formatClock,
@@ -177,3 +178,11 @@ elements.form.addEventListener("submit", (event) => {
   start(elements.input.value.trim());
 });
 start(currentPatientId);
+
+initEvidencePanel({
+  form: document.getElementById("module-form"),
+  output: document.getElementById("module-output"),
+  status: document.getElementById("module-status"),
+  getPatientId: () => currentPatientId,
+  mock: options.mock,
+});

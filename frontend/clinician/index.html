@@ -33,6 +33,29 @@
         </div>
       </form>
 
+      <section class="card" aria-labelledby="evidence-title">
+        <h2 id="evidence-title">Test a suspicion</h2>
+        <p class="muted">
+          Choose what you want to check. Only that module runs, on this patient's recording.
+          The result supports your judgement; it does not replace it.
+        </p>
+        <form id="module-form" class="module-form">
+          <label>
+            <span>Suspicion</span>
+            <select name="suspicion" class="text-input">
+              <option value="depression">Depression</option>
+            </select>
+          </label>
+          <label>
+            <span>Period (last days)</span>
+            <input name="days" class="text-input" type="number" min="4" max="90" required />
+          </label>
+          <button class="button button--primary" type="submit">Run module</button>
+        </form>
+        <p id="module-status" class="muted" role="status" aria-live="polite"></p>
+        <div id="module-output"></div>
+      </section>
+
       <section class="card" aria-labelledby="timeline-title">
         <h2 id="timeline-title">Episodes and answers</h2>
         <p class="muted">

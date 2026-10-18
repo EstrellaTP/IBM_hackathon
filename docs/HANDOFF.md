@@ -4,6 +4,14 @@ Entradas nuevas **arriba del todo**. Formato en `CLAUDE.md` §1.2.
 
 ---
 
+### [APP] 09:32 18/10 · F2-FE-01 · Panel de evidencias del médico
+- Hecho: en `/clinician/` una sección "Test a suspicion" (selector de sospecha, periodo en días, botón "Run module" → `POST /api/v1/module-runs`). Muestra "Signals compatible / not compatible with depression", la confianza (con "borderline" si < 60 %, como sugería #11), el aviso "not compatible does not rule anything out", días válidos, horas perdidas y versión del modelo. Debajo, 4 tarjetas (sueño, ritmo circadiano, actividad diurna, pulso): línea del paciente por día sobre la banda p10–p90 de NHANES de su sexo y edad, mediana discontinua, puntos huecos fuera de la banda, etiqueta "Evidence" en texto en las que más pesaron, tooltip con ratón y teclado, y tabla de valores plegable. El pulso sale como "No heart-rate data". Sin texto redactado sobre el paciente.
+- Ficheros: `frontend/clinician/evidence-panel.js`, `evidence-chart.js` (SVG propio, sin librerías), `runModule` en `frontend/shared/api-client.js` (con mensajes legibles para 404, 422 y 503), estilos en `styles.css`. Modo `?mock=1` incluido.
+- Verificación: sintaxis con Node; capturas con Playwright en modo mock (escritorio claro y móvil oscuro), sin errores de consola. **Falta verlo con datos reales en la VM**: la pasarela copia `frontend/` dentro de su imagen, así que hace falta `scripts/deploy_vm.sh`.
+- Para el otro carril: [CC] desplegar y probar con `p_dec052417c41` (compatible) y `p_dec0ecf80c4a` (not compatible) en `https://148.100.99.58:8443/clinician/?patient_id=…` (detalles en #11).
+- Issues: #2 cerrado (decisión del equipo), #9 cerrado, comentados #5 (historial revisado: seguro hacerlo público) y #10 (relato del plan B).
+- Captura para el jurado: el panel con `p_dec052417c41` y con `p_dec0ecf80c4a`.
+
 ### [CC] 07:20 18/10 · CIERRE DE SESIÓN · Estado exacto y siguientes pasos
 **Estado de `main`** (todo integrado, smoke test en verde; etiqueta `demo-ok-1`):
 - Corte vertical en la VM (e2e verde), módulo de depresión desplegado (`POST /api/v1/module-runs`, 4 pacientes de demo), benchmark, NNPA, big-endian, equidad, calibración, rangos de referencia, seguridad (`docs/security.md`). QUALITY: 10/11 casillas `[CC]` cerradas.

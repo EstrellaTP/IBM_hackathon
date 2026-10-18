@@ -23,8 +23,8 @@ Reglas:
 - [ ] [APP] **Features documentadas**: cada feature (IS, IV, RA, L5, M10, sueño…) con fórmula y referencia en `ml/features/README.md`. (R3)
 
 ## C. LinuxONE de verdad (criterio 3)
-- [ ] [CC] **Benchmark de latencia**: p50/p99 en servidor frente a 1/10/100/1.000 pacientes en `ml/reports/benchmark.csv` + gráfica. (R3, AI)
-- [ ] [CC] **`nnpa`**: comparación con y sin acelerador, o `[~]` si no existe. (R3)
+- [x] [CC] **Benchmark de latencia**: p50/p99 en servidor frente a 1/10/100/1.000 pacientes en `ml/reports/benchmark.csv` + gráfica. (R3, AI) → 1/10/100/1.000 pacientes, 16.653 peticiones, 0 errores; detector 0,3 ms p50 y < 1 ms p99 (plano); servidor p50 6–17 ms, p99 121 ms con 1.000 (no plano: cuello de botella ingest-api en un proceso, documentado): [`ml/reports/benchmark.md`](../ml/reports/benchmark.md), [`benchmark.svg`](../ml/reports/benchmark.svg), [`benchmark.csv`](../ml/reports/benchmark.csv)
+- [x] [CC] **`nnpa`**: comparación con y sin acelerador, o `[~]` si no existe. (R3) → NNPA real (traza `zdnn_matmul_op` DLFLOAT16), mismo modelo LightGBM con LightGBM / Snap ML CPU / Snap ML NNPA: para nuestro modelo pequeño la CPU (Snap ML) es la más rápida y el NNPA no compensa; mismas predicciones: [`ml/reports/nnpa_comparison.md`](../ml/reports/nnpa_comparison.md)
 - [x] [CC] **Capturas** en `docs/screenshots/`: VM, `uname -m`, `lscpu`, `docker ps`, logs de inferencia. (R3) → transcripciones de terminal: [`vm_check.txt`](screenshots/vm_check.txt) (z17, `uname -m`, `lscpu`, NNPA, CPACF), [`docker_ps.txt`](screenshots/docker_ps.txt), [`deploy_one_command.txt`](screenshots/deploy_one_command.txt), [`inference_logs_wesad.txt`](screenshots/inference_logs_wesad.txt)
 - [ ] [APP] **Cifrado y auditoría**: campos sensibles cifrados en reposo, TLS, registro de auditoría append-only con test. (R3)
 

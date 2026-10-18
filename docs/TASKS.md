@@ -70,8 +70,8 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 
 | ID | Tarea | Carril | Estado | Depende de |
 |---|---|---|---|---|
-| F3-BE-01 | Simulador multi-paciente (1/10/100/1.000) + `tools/benchmark` que calcula p50/p99 por etapa y dibuja la gráfica | CC (cogida de APP) | 🟡 CC | F1-BE-04 |
-| F3-BE-02 | Ejecutar el benchmark en la VM; con y sin `nnpa` si existe; `ml/reports/benchmark.csv` + gráfica + capturas | CC | 🟡 CC | F3-BE-01, F1-BE-05 |
+| F3-BE-01 | Simulador multi-paciente (1/10/100/1.000) + `tools/benchmark` que calcula p50/p99 por etapa y dibuja la gráfica | CC (cogida de APP) | ✅ | F1-BE-04 |
+| F3-BE-02 | Ejecutar el benchmark en la VM; con y sin `nnpa` si existe; `ml/reports/benchmark.csv` + gráfica + capturas | CC | ✅ | F3-BE-01, F1-BE-05 |
 | F3-ML-01 | Equidad: sensibilidad y especificidad por sexo y edad (código) | CC (hecha dentro de F2-ML-03) | ✅ | F2-ML-03 |
 | F3-ML-02 | Ejecutar equidad con datos reales + gráfica | CC | ✅ | F3-ML-01, F2-ML-04 |
 | F3-ML-03 | Detector v2 con Isolation Forest y comparación con z-score y regla fija (falsas alarmas/hora) en WESAD y enfermeras | APP (código) + CC (ejecución) | ⬜ | F1-ML-01 |

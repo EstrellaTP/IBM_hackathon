@@ -74,7 +74,7 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 | F3-BE-02 | Ejecutar el benchmark en la VM; con y sin `nnpa` si existe; `ml/reports/benchmark.csv` + gráfica + capturas | CC | ✅ | F3-BE-01, F1-BE-05 |
 | F3-ML-01 | Equidad: sensibilidad y especificidad por sexo y edad (código) | CC (hecha dentro de F2-ML-03) | ✅ | F2-ML-03 |
 | F3-ML-02 | Ejecutar equidad con datos reales + gráfica | CC | ✅ | F3-ML-01, F2-ML-04 |
-| F3-ML-03 | Detector v2 con Isolation Forest y comparación con z-score y regla fija (falsas alarmas/hora) en WESAD y enfermeras | APP (código) + CC (ejecución) | ⬜ | F1-ML-01 |
+| F3-ML-03 | Detector v2 con Isolation Forest y comparación con z-score y regla fija (falsas alarmas/hora) en WESAD y enfermeras | APP (código) + CC (ejecución) | ⛔ (WESAD hecho; enfermeras: #2) | F1-ML-01 |
 | F3-FE-01 | Vista "before and now" (DEPRESJON inicio frente a final) | APP | ⬜ | F2-FE-01 |
 | F3-FE-02 | Protocolo de seguridad en `/patient` ("Are you OK?", botones simulados) y episodio destacado en `/clinician` | APP | ⬜ | F1-FE-01 |
 | F3-FE-03 | Controles del paciente: ver sus datos, pausar registro, retirar consentimiento | APP | ⬜ | F1-FE-01, F1-BE-02 |
@@ -96,6 +96,6 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 
 | ID | Tarea | Carril | Estado |
 |---|---|---|---|
-| F5-01 | Wearable real con `bleak` (escaleras frente a cálculo mental) | CC + HUM | ⬜ |
+| F5-01 | Wearable real con `bleak` (escaleras frente a cálculo mental) | CC + HUM | ⛔ (falta pulsera: F0-HUM-02) |
 | F5-02 | Descripción de qué mide cada gráfica con GenAI (solo si se aprueba) | APP | ⬜ |
-| F5-03 | Secure Execution / cifrado por hardware documentado | CC | ⬜ |
+| F5-03 | Secure Execution / cifrado por hardware documentado | CC | ✅ |

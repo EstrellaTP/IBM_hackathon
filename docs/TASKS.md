@@ -54,9 +54,9 @@ Estados: ⬜ pendiente · 🟡 en curso · ⛔ bloqueada · 👀 en revisión ·
 
 | ID | Tarea | Carril | Estado | Depende de |
 |---|---|---|---|---|
-| F2-ML-01 | `ml/features`: IS, IV, RA, L5, M10, sueño (inicio, duración, fragmentación), % sin movimiento, actividad diurna; normalización por persona; tests con sintéticos | APP | ⬜ | F0-ML-02 |
+| F2-ML-01 | `ml/features`: IS, IV, RA, L5, M10, sueño (inicio, duración, fragmentación), % sin movimiento, actividad diurna; normalización por persona; tests con sintéticos | CC (cogida de APP) | 🟡 CC | F0-ML-02 |
 | F2-ML-02 | Rangos de referencia p10/p50/p90 por sexo y grupo de edad en NHANES → `ml/reports/reference_ranges.json` | CC | ⬜ | F2-ML-01, F0-ML-03 |
-| F2-ML-03 | `ml/models/train.py`: logística, RF, LightGBM; `GroupKFold` por persona; calibración; métricas MCC/F1/sens/espec/AUC; diagrama de fiabilidad. Código y tests | APP | ⬜ | F2-ML-01 |
+| F2-ML-03 | `ml/models/train.py`: logística, RF, LightGBM; `GroupKFold` por persona; calibración; métricas MCC/F1/sens/espec/AUC; diagrama de fiabilidad. Código y tests | CC (cogida de APP) | 🟡 CC | F2-ML-01 |
 | F2-ML-04 | Entrenar con NHANES real, probar en DEPRESJON (LOSO), guardar modelo portable y `ml/reports/metrics.md` | CC | ⬜ | F2-ML-02, F2-ML-03 |
 | F2-ML-05 | SHAP por paciente → `is_evidence` (top 3–4); plan B si SHAP no instala | APP | ⬜ | F2-ML-03 |
 | F2-BE-01 | `suspicion-module` (recibe `ModuleRequest`, devuelve `ModuleResult`; modelo dummy hasta F2-ML-04) y `evidence-api`; auditoría por inferencia | APP | ⬜ | F0-COM-01 |

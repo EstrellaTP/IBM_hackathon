@@ -14,10 +14,10 @@ Reglas:
 - [x] [CC] **Big-endian comprobado**: la misma entrada da la misma predicción en el portátil y en la VM (diferencia < 1e-6). Verificación: `ml/reports/endianness_check.md`. (R3) → diferencia **0,0** (bit a bit) en 50 filas, modelo desplegado y LightGBM en texto: [`ml/reports/endianness_check.md`](../ml/reports/endianness_check.md)
 
 ## B. Rigor de datos y modelos (es un datathon)
-- [ ] [CC] **Módulo de depresión validado por persona**: MCC, F1, sensibilidad, especificidad y AUC con `GroupKFold` (NHANES) y LOSO (DEPRESJON) en `ml/reports/metrics.md`. (R3, AI)
-- [ ] [CC] **Comparación de modelos**: logística frente a RF frente a LightGBM, en una tabla. (R3)
-- [ ] [CC] **Calibración**: diagrama de fiabilidad en `ml/reports/`. (R3)
-- [ ] [CC] **Equidad**: sensibilidad y especificidad por sexo y grupo de edad + gráfica. (R1, AI)
+- [x] [CC] **Módulo de depresión validado por persona**: MCC, F1, sensibilidad, especificidad y AUC con `GroupKFold` (NHANES) y LOSO (DEPRESJON) en `ml/reports/metrics.md`. (R3, AI) → NHANES GroupKFold AUC 0,63 (0,61–0,65); DEPRESJON LOSO AUC 0,82 (0,69–0,94), MCC 0,63, F1 0,78 (ref. publicada F1 0,73 / MCC 0,44); externa NHANES→DEPRESJON AUC 0,57 → plan B: [`ml/reports/metrics.md`](../ml/reports/metrics.md)
+- [x] [CC] **Comparación de modelos**: logística frente a RF frente a LightGBM, en una tabla. (R3) → tabla logística / RF / LightGBM en los tres escenarios con IC 95 % bootstrap: [`ml/reports/metrics.md`](../ml/reports/metrics.md)
+- [x] [CC] **Calibración**: diagrama de fiabilidad en `ml/reports/`. (R3) → isotónica dentro de cada fold, ECE ≤ 0,01: [`ml/reports/reliability.svg`](../ml/reports/reliability.svg)
+- [x] [CC] **Equidad**: sensibilidad y especificidad por sexo y grupo de edad + gráfica. (R1, AI) → sensibilidad 0,59–0,71 y especificidad 0,50–0,65 en 6 grupos sexo × edad (NHANES): [`ml/reports/fairness.svg`](../ml/reports/fairness.svg), tabla en `metrics.md`
 - [ ] [CC] **Detector frente a regla fija**: falsas alarmas por hora y recall por evento en WESAD y enfermeras, z-score frente a Isolation Forest frente a `HR > 100`. (R2, AI)
 - [ ] [APP] **Sin leakage por construcción**: test que falla si un mismo `patient_id` aparece en train y test. (R3)
 - [ ] [APP] **Features documentadas**: cada feature (IS, IV, RA, L5, M10, sueño…) con fórmula y referencia en `ml/features/README.md`. (R3)

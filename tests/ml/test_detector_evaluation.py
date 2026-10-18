@@ -75,3 +75,17 @@ def test_false_alarm_conditions_names_where_each_false_alarm_happened():
     stress = ev.stress_intervals(labels, origin)
     text = ev.false_alarm_conditions([50, 150, 250, 310], stress, conditions, origin)
     assert text == "amusement:1;baseline:2"
+
+
+def test_hr_only_grid_varies_the_threshold_used_without_eda():
+    configs = ev.hr_only_grid_configs()
+    assert ev.HR_ONLY_DEFAULT_NAME in configs
+    assert all(name.startswith(ev.HR_ONLY_PREFIX) for name in configs)
+    assert {c.hr_z_threshold_without_eda for c in configs.values()} >= set(ev.HR_ONLY_THRESHOLDS)
+
+
+def test_loso_prefix_keeps_eda_and_hr_only_candidates_apart():
+    rows = [_run("A", "zscore_x", 1, 0), _run("A", "hronly_y", 0, 0),
+            _run("B", "zscore_x", 1, 0), _run("B", "hronly_y", 0, 0)]  # fmt: skip
+    _, choices = ev.leave_one_subject_out(pd.DataFrame([vars(r) for r in rows]), "hronly_")
+    assert set(choices["chosen_config"]) == {"hronly_y"}

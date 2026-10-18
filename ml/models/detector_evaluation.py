@@ -74,6 +74,11 @@ EDA_Z_MIN = (-math.inf, 0.0, 1.0)
 FIXED_RULE_NAME = "fixed_rule_hr_gt_100"
 DEFAULT_NAME = "zscore_default"
 V1_NAME = "zscore_v1"
+HR_ONLY_PREFIX = "hronly_"
+HR_ONLY_DEFAULT_NAME = "hronly_default"
+# Heart-rate-only bands (e.g. a Polar H10): EDA is removed from the input and the
+# threshold used without EDA is tuned on its own (issue #6).
+HR_ONLY_THRESHOLDS = (2.0, 2.5, 3.0, 3.5, 4.0, 4.5)
 # Detector v1 as first written in F1-ML-01, kept as a fixed reference point after
 # the defaults were updated from this evaluation.
 V1_CONFIG = DetectorConfig(
@@ -230,6 +235,22 @@ def grid_configs() -> dict[str, DetectorConfig]:
     return configs
 
 
+def hr_only_grid_configs() -> dict[str, DetectorConfig]:
+    """Return the configurations explored with EDA removed from the input."""
+    configs = {HR_ONLY_DEFAULT_NAME: DetectorConfig()}
+    for hr_z, activity_z, lookback in itertools.product(
+        HR_ONLY_THRESHOLDS, ACTIVITY_Z_MAX, MOVEMENT_LOOKBACK_SECONDS
+    ):
+        name = f"{HR_ONLY_PREFIX}hr{hr_z}_act{activity_z}_look{lookback:.0f}"
+        configs[name] = replace(
+            DetectorConfig(),
+            hr_z_threshold_without_eda=hr_z,
+            activity_z_max=activity_z,
+            movement_lookback_seconds=lookback,
+        )
+    return configs
+
+
 def _detection_times(episodes: Iterable[EpisodeEvent], window_s: float, origin) -> list[float]:
     """Return each episode's detection instant in seconds since ``origin``."""
     return [(episode.start - origin).total_seconds() + window_s for episode in episodes]
@@ -249,13 +270,16 @@ def evaluate_subject(subject: str) -> list[RunResult]:
     total_s = (stream.index[-1] - origin).total_seconds()
     stress = stress_intervals(stream["label"], origin)
     samples = loaders.stream_to_samples(stream)
+    without_eda = [sample.model_copy(update={"eda": None}) for sample in samples]
     conditions = stream["condition"]
     del stream
     # Deterministic pseudonym (hash() is salted per process).
     patient_id = "p_" + hashlib.sha256(subject.encode()).hexdigest()[:8]
     results = []
-    for name, config in grid_configs().items():
-        episodes = PatientDetector(patient_id, config).process(samples)
+    runs = [(name, config, samples) for name, config in grid_configs().items()]
+    runs += [(name, config, without_eda) for name, config in hr_only_grid_configs().items()]
+    for name, config, inputs in runs:
+        episodes = PatientDetector(patient_id, config).process(inputs)
         times = _detection_times(episodes, config.window_seconds, origin)
         result = score_episodes(subject, name, times, stress, total_s)
         result.false_alarm_conditions = false_alarm_conditions(times, stress, conditions, origin)
@@ -294,17 +318,21 @@ def pooled_metrics(runs: pd.DataFrame) -> dict[str, float]:
     }
 
 
-def leave_one_subject_out(runs: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def leave_one_subject_out(
+    runs: pd.DataFrame, prefix: str = "zscore_"
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Choose a configuration per held-out subject using only the other subjects.
 
     Args:
         runs: All results (every subject x configuration).
+        prefix: Only configurations whose name starts with it are candidates
+            (``zscore_`` with EDA, ``hronly_`` without).
 
     Returns:
         ``(held_out_runs, choices)``: the held-out subject's result under the
         configuration chosen without it, and which configuration was chosen.
     """
-    candidates = runs[runs["config_name"].str.startswith("zscore_")]
+    candidates = runs[runs["config_name"].str.startswith(prefix)]
     held_out_rows = []
     choices = []
     for subject in sorted(candidates["subject"].unique()):
@@ -332,6 +360,7 @@ def leave_one_subject_out(runs: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFram
 def build_report(runs: pd.DataFrame) -> str:
     """Render the Markdown report from all runs."""
     held_out, choices = leave_one_subject_out(runs)
+    hr_only_held_out, hr_only_choices = leave_one_subject_out(runs, HR_ONLY_PREFIX)
 
     def _metrics_of(name: str) -> dict[str, float]:
         return pooled_metrics(runs[runs["config_name"] == name])
@@ -344,10 +373,20 @@ def build_report(runs: pd.DataFrame) -> str:
                 **_metrics_of(DEFAULT_NAME),
             },
             {"method": "Personal z-score v1 (initial thresholds)", **_metrics_of(V1_NAME)},
+            {
+                "method": "HR-only band (EDA removed), thresholds chosen by LOSO",
+                **pooled_metrics(hr_only_held_out),
+            },
+            {
+                "method": "HR-only band (EDA removed), deployed defaults (in-sample)",
+                **_metrics_of(HR_ONLY_DEFAULT_NAME),
+            },
             {"method": "Fixed rule HR > 100 bpm", **_metrics_of(FIXED_RULE_NAME)},
         ]
     )
-    most_chosen = choices["chosen_config"].value_counts()
+    most_chosen = pd.concat(
+        [choices["chosen_config"], hr_only_choices["chosen_config"]]
+    ).value_counts()
     compared = [DEFAULT_NAME, V1_NAME, FIXED_RULE_NAME]
     per_subject = runs[runs["config_name"].isin(compared)].pivot(
         index="subject", columns="config_name", values=["detected_events", "false_alarms"]
@@ -390,9 +429,13 @@ def build_report(runs: pd.DataFrame) -> str:
             f"`hr_z_threshold={defaults.hr_z_threshold}`, "
             f"`activity_z_max={defaults.activity_z_max}`, "
             f"`movement_lookback_seconds={defaults.movement_lookback_seconds:.0f}`, "
-            f"`eda_z_min={defaults.eda_z_min}`.",
+            f"`eda_z_min={defaults.eda_z_min}`, "
+            f"`hr_z_threshold_without_eda={defaults.hr_z_threshold_without_eda}`.",
+            "- **HR-only band** rows replay the same data with EDA removed, as a heart-rate"
+            "-only wearable would send it; the EDA check is then skipped and "
+            "`hr_z_threshold_without_eda` applies.",
             "",
-            "## Configurations chosen across the 15 folds",
+            "## Configurations chosen across the 15 folds (with EDA and HR-only)",
             "",
             most_chosen.rename_axis("config").reset_index().to_markdown(index=False),
             "",

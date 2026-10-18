@@ -6,3 +6,4 @@ fastapi==0.143.3
 httpx==0.28.1
 cryptography==50.0.2
 -r ml/requirements.txt
+websockets>=13  # e2e client only; the services pin their own version

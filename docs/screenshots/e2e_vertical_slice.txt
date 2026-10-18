@@ -1,0 +1,16 @@
+# scripts/smoke_test.sh --e2e from the laptop against the LinuxONE VM (2026-10-18T00:28Z)
+$ E2E_BASE_URL=https://148.100.99.58:8443 scripts/smoke_test.sh --e2e
+== format and lint (ruff)
+76 files already formatted
+All checks passed!
+== unit tests
+........................................................................ [ 75%]
+.......................                                                  [100%]
+== UI language check (no diagnostic wording)
+== end-to-end
+patient=p_eb69989b16561521 gateway=https://148.100.99.58:8443
+batches sent=122 in 17.6 s
+question episode=e_c8e3b4f35f058643 severity=normal server(ingest->inference)=12.1 ms inference->push=9.1 ms push->phone=67.1 ms
+clinician timeline shows the answer
+OK
+exit=0

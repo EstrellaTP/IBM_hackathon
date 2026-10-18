@@ -33,7 +33,7 @@ fi
 if [ "${1:-}" = "--e2e" ]; then
   echo "== end-to-end"
   if [ -f tests/e2e/run_e2e.py ]; then
-    "$PY" tests/e2e/run_e2e.py "${E2E_BASE_URL:-https://localhost:8443}"
+    "$PY" -m tests.e2e.run_e2e "${E2E_BASE_URL:-https://localhost:8443}"
   else
     echo "FAIL: tests/e2e/run_e2e.py does not exist yet"; exit 1
   fi

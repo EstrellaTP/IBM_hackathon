@@ -4,7 +4,7 @@ Entradas nuevas **arriba del todo**. Formato en `CLAUDE.md` §1.2.
 
 ---
 
-### [CC] 02:40 18/10 · F1-BE-01..04 + #6 + #7 · Backend del corte vertical funcionando en la VM (`demo-ok-1`)
+### [CC] 04:36 18/10 · F1-BE-01..04 + #6 + #7 · Backend del corte vertical funcionando en la VM (`demo-ok-1`)
 - Hecho (cogidas de APP, contrato en `docs/api.md`):
   - **store** (F1-BE-02): SQLite en volumen; señal, episodios y respuestas **cifrados con Fernet** (en claro solo `patient_id` seudónimo, ids y horas). Auditoría **append-only** (triggers contra UPDATE/DELETE) **con cadena de hashes** (`GET /api/v1/audit-entries/verification`). No arranca sin `STORE_ENCRYPTION_KEY`. Tests: nada sensible en claro en los ficheros de la BD, otra clave no lee, la cadena detecta manipulación.
   - **detector** (F1-BE-01): `POST /api/v1/detections`, un `PatientDetector` por paciente en memoria (`services/detector/registry.py`), versión `zscore-2`.

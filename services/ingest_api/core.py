@@ -128,16 +128,24 @@ class IngestPipeline:
     async def ingest(self, batch: SignalBatch) -> IngestResult:
         """Process one batch end to end and return the episodes it produced."""
         ingested_at = utcnow()
+        # Serialise the batch once with Pydantic's Rust encoder and reuse the bytes for
+        # both internal calls: the benchmark showed ingest-api CPU-bound at 1,000
+        # patients, mostly from converting the batch to dicts and re-encoding it twice.
+        batch_json = batch.model_dump_json().encode()
+        detection_body = (
+            b'{"batch":'
+            + batch_json
+            + b',"ingested_at":"'
+            + ingested_at.isoformat().encode()
+            + b'"}'
+        )
+        headers = {"content-type": "application/json"}
         detection, _ = await asyncio.gather(
             self._client.post(
-                f"{self._detector_url}/api/v1/detections",
-                json={
-                    "batch": batch.model_dump(mode="json"),
-                    "ingested_at": ingested_at.isoformat(),
-                },
+                f"{self._detector_url}/api/v1/detections", content=detection_body, headers=headers
             ),
             self._client.post(
-                f"{self._store_url}/api/v1/signal-batches", json=batch.model_dump(mode="json")
+                f"{self._store_url}/api/v1/signal-batches", content=batch_json, headers=headers
             ),
         )
         detection.raise_for_status()

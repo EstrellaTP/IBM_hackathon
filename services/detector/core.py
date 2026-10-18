@@ -99,7 +99,8 @@ class DetectorConfig:
     # (F1-ML-02, ml/reports/detector_wesad.md): the same values won in 12 of 15 folds.
     # v1 used hr_z_threshold=3.0, activity_z_max=1.0, no look-back and no EDA check.
     hr_z_threshold: float = 2.0
-    hr_z_threshold_without_eda: float = 3.0
+    # Chosen in 15 of 15 WESAD LOSO folds with EDA removed (issue #6).
+    hr_z_threshold_without_eda: float = 2.5
     hr_z_extreme: float = 6.0
     activity_z_max: float = 0.5
     min_std_hr_bpm: float = 2.0

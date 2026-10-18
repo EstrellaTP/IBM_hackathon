@@ -237,6 +237,11 @@ class IngestPipeline:
         )
         response.raise_for_status()
 
+    async def episode_owner(self, episode_id: str) -> str | None:
+        """Return the patient an episode belongs to, or ``None`` if it does not exist."""
+        episode = await self._find_episode(episode_id)
+        return episode.patient_id if episode else None
+
     async def _find_episode(self, episode_id: str) -> EpisodeEvent | None:
         # The answer only carries the episode id; the audit entry needs the patient.
         response = await self._client.get(f"{self._store_url}/api/v1/episodes/{episode_id}")

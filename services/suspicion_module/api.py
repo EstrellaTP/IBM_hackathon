@@ -1,5 +1,7 @@
 """HTTP routes of suspicion-module (routed by the gateway as /api/v1/module-runs).
 
+Only a clinician assigned to the patient may run a module (issue #14).
+
 Thin layer: reads the patient's profile, activity history and episodes from the
 store, runs :class:`services.suspicion_module.core.SuspicionModule` and writes the
 audit entry for the inference (who, which module, which model version).
@@ -18,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from ml.models.predict import load_model
 from services.common.schemas import AuditEntry, ModuleRequest, ModuleResult
+from services.common.security import ClinicianDep, UsersDep, ensure_access
 from services.suspicion_module.core import InsufficientDataError, SuspicionModule
 from services.suspicion_module.settings import SuspicionSettings, load_settings
 
@@ -68,8 +71,17 @@ ModuleDep = Annotated[SuspicionModule, Depends(_module)]
 
 
 @router.post("/module-runs", response_model=ModuleResult)
-async def run_module(request: ModuleRequest, client: ClientDep, module: ModuleDep) -> ModuleResult:
-    """Run the module selected by the clinician over the patient's recording."""
+async def run_module(
+    request: ModuleRequest,
+    client: ClientDep,
+    module: ModuleDep,
+    claims: ClinicianDep,
+    users: UsersDep,
+) -> ModuleResult:
+    """Run the module selected by the clinician over an assigned patient's recording."""
+    ensure_access(claims, request.patient_id, users)
+    # The audit log records who really asked, not what the request body claims.
+    request = request.model_copy(update={"requested_by": claims.sub})
     patient = request.patient_id
     profile_response = await client.get(f"/api/v1/patients/{patient}/profile")
     if profile_response.status_code == httpx.codes.NOT_FOUND:

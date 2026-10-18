@@ -7,6 +7,6 @@ evidence dashboard (ModuleResult per metric against reference ranges).
 from __future__ import annotations
 
 from services.common.app import create_app
-from services.evidence_api.api import router
+from services.evidence_api.api import public_router, router
 
-app = create_app("evidence-api", router)
+app = create_app("evidence-api", router, public_router)

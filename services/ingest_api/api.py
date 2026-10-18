@@ -1,6 +1,8 @@
 """HTTP and WebSocket routes of ingest-api (patient side, routed by the gateway).
 
 Thin layer over :mod:`services.ingest_api.core`; contract in ``docs/api.md``.
+Access rules (issue #14): devices upload signal with ``X-Device-Key``; a patient token
+is needed to answer (only their own episodes) and to open their question channel.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Path, WebSocket, WebSocketDisconnect, status
 from pydantic import BaseModel
 
+from services.common.auth import AuthError, ForbiddenError, check_patient_access
 from services.common.schemas import (
     PATIENT_ID_PATTERN,
     EpisodeEvent,
@@ -23,6 +26,14 @@ from services.common.schemas import (
     Severity,
     SignalBatch,
     utcnow,
+)
+from services.common.security import (
+    DeviceKeyDep,
+    PatientDep,
+    claims_from_token,
+    forbidden,
+    get_auth_settings,
+    get_users,
 )
 from services.ingest_api.core import IngestPipeline, QuestionHub, UnknownEpisodeError
 from services.ingest_api.settings import load_settings
@@ -33,6 +44,9 @@ router = APIRouter(prefix="/api/v1", tags=["ingest-api"])
 
 # Keep-alive so proxies do not close an idle question channel (nginx: 1 h read timeout).
 PING_INTERVAL_SECONDS = 25
+# WebSocket close codes in the private 4000-4999 range, mirroring HTTP 401 and 403.
+WS_UNAUTHORIZED = 4401
+WS_FORBIDDEN = 4403
 
 
 @lru_cache(maxsize=1)
@@ -71,7 +85,9 @@ class AnswerResponse(BaseModel):
 
 
 @router.post("/signal-batches", status_code=status.HTTP_202_ACCEPTED, response_model=IngestResponse)
-async def ingest_signal_batch(batch: SignalBatch, pipeline: PipelineDep) -> IngestResponse:
+async def ingest_signal_batch(
+    batch: SignalBatch, pipeline: PipelineDep, _device: DeviceKeyDep
+) -> IngestResponse:
     """Receive a minute of signal, detect episodes and push questions to the phone."""
     try:
         result = await pipeline.ingest(batch)
@@ -89,8 +105,18 @@ async def ingest_signal_batch(batch: SignalBatch, pipeline: PipelineDep) -> Inge
 
 
 @router.post("/answers", status_code=status.HTTP_201_CREATED, response_model=AnswerResponse)
-async def store_answer(answer: QuestionAnswer, pipeline: PipelineDep) -> AnswerResponse:
-    """Store the patient's answer to a question."""
+async def store_answer(
+    answer: QuestionAnswer, pipeline: PipelineDep, claims: PatientDep
+) -> AnswerResponse:
+    """Store the patient's answer to one of their own questions."""
+    try:
+        owner = await pipeline.episode_owner(answer.episode_id)
+    except httpx.HTTPError as error:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "store unavailable") from error
+    if owner is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown episode {answer.episode_id}")
+    if owner != claims.patient_id:
+        raise forbidden("this episode belongs to another patient")
     try:
         stored = await pipeline.store_answer(answer)
     except UnknownEpisodeError as error:
@@ -104,8 +130,18 @@ async def store_answer(answer: QuestionAnswer, pipeline: PipelineDep) -> AnswerR
 async def question_channel(
     websocket: WebSocket, patient_id: PatientId, pipeline: PipelineDep
 ) -> None:
-    """Keep the phone's question channel open and push episodes as they happen."""
+    """Keep the phone's question channel open and push episodes as they happen.
+
+    Browsers cannot set headers on a WebSocket, so the session token comes as
+    ``?token=``. The handshake is accepted first so the close code reaches the page:
+    4401 for a missing or invalid token, 4403 for another patient's channel or an
+    origin not in ``ALLOWED_ORIGINS``.
+    """
     await websocket.accept()
+    code = _channel_refusal(websocket, patient_id)
+    if code is not None:
+        await websocket.close(code=code)
+        return
     pipeline.hub.add(patient_id, websocket)
     try:
         await _send_pending(websocket, patient_id, pipeline)
@@ -119,6 +155,30 @@ async def question_channel(
         logger.info("patient=%s phone disconnected", patient_id)
     finally:
         pipeline.hub.remove(patient_id, websocket)
+
+
+def _channel_refusal(websocket: WebSocket, patient_id: str) -> int | None:
+    """Return the close code if the caller may not open this channel, else ``None``."""
+    origin = websocket.headers.get("origin")
+    allowed = get_auth_settings().allowed_origins
+    same_origin = origin is not None and origin.split("://", 1)[-1] == websocket.headers.get(
+        "host", ""
+    )
+    if origin and allowed and origin not in allowed and not same_origin:
+        logger.info("patient=%s channel refused: origin not allowed", patient_id)
+        return WS_FORBIDDEN
+    try:
+        claims = claims_from_token(websocket.query_params.get("token", ""))
+    except HTTPException:
+        return WS_UNAUTHORIZED
+    try:
+        if claims.role != "patient":
+            raise ForbiddenError("patients only")
+        check_patient_access(claims, patient_id, get_users())
+    except (ForbiddenError, AuthError):
+        logger.info("patient=%s channel refused: token for another patient", patient_id)
+        return WS_FORBIDDEN
+    return None
 
 
 async def _send_pending(websocket: WebSocket, patient_id: str, pipeline: IngestPipeline) -> None:

@@ -17,7 +17,7 @@ VM_DIR="${VM_DIR:-IBM_hackathon}"
 
 # Exclude deleted-but-still-tracked paths, which tar cannot read.
 git ls-files -z --cached --others --exclude-standard \
-  | xargs -0 -I{} sh -c 'test -e "{}" && printf "%s\0" "{}"' \
+  | xargs -0 -I{} sh -c 'if test -e "{}"; then printf "%s\0" "{}"; fi' \
   | tar --null -T - -cf - \
   | ssh -o BatchMode=yes "$VM_HOST" "mkdir -p '$VM_DIR' && tar -xf - -C '$VM_DIR'"
 

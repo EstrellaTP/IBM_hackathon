@@ -1,0 +1,69 @@
+# Mental health Holter on IBM LinuxONE: every component that touches health data.
+#
+#   cp infra/env.example infra/.env   # then fill in the secrets (see the file)
+#   scripts/make_dev_cert.sh 148.100.99.58
+#   docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
+#
+# Only the gateway publishes a port (8443, TLS). Ports published by Docker bypass
+# the VM's iptables INPUT chain (docs/vm-check.md section 5), so the internal
+# services are reachable only on the compose network.
+name: holter
+
+x-service: &service
+  restart: unless-stopped
+  env_file: .env
+  networks: [backend]
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+
+services:
+  gateway:
+    build: { context: .., dockerfile: infra/gateway/Dockerfile }
+    restart: unless-stopped
+    ports: ["8443:8443"]
+    volumes: ["./certs:/etc/nginx/certs:ro"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--no-check-certificate", "-O", "/dev/null", "https://127.0.0.1:8443/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    networks: [backend]
+    depends_on:
+      ingest-api: { condition: service_healthy }
+      evidence-api: { condition: service_healthy }
+      suspicion-module: { condition: service_healthy }
+
+  ingest-api:
+    <<: *service
+    build: { context: .., dockerfile: services/ingest_api/Dockerfile }
+    depends_on:
+      detector: { condition: service_healthy }
+      store: { condition: service_healthy }
+
+  detector:
+    <<: *service
+    build: { context: .., dockerfile: services/detector/Dockerfile }
+
+  store:
+    <<: *service
+    build: { context: .., dockerfile: services/store/Dockerfile }
+    volumes: ["store-data:/data"]
+
+  suspicion-module:
+    <<: *service
+    build: { context: .., dockerfile: services/suspicion_module/Dockerfile }
+    depends_on:
+      store: { condition: service_healthy }
+
+  evidence-api:
+    <<: *service
+    build: { context: .., dockerfile: services/evidence_api/Dockerfile }
+    depends_on:
+      store: { condition: service_healthy }
+
+networks:
+  backend: {}
+
+volumes:
+  store-data: {}

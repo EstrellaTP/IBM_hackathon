@@ -1,0 +1,14 @@
+# Build context is the repository root. Allow-list only what images need: the VM
+# copy of the repo holds tens of GB of health datasets in ml/data/raw, which must
+# never be sent to the Docker daemon or end up in an image.
+*
+!services/
+!frontend/
+!infra/gateway/
+!ml/__init__.py
+!ml/data/__init__.py
+!ml/data/loaders.py
+!ml/features/
+!ml/models/
+**/__pycache__
+**/*.pyc

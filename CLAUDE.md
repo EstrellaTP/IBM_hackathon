@@ -295,9 +295,10 @@ Lo nuestro: (1) **cuándo preguntar lo decide un modelo personal** que descarta 
 
 - **LinuxONE es obligatorio y de verdad.** Ingesta, detección, almacenamiento, módulo de la sospecha y evidencias corren en la VM de L1CC. Fuera solo quedan la pulsera, el móvil y el navegador del médico. No basta con mencionarlo en el pitch.
 - **LinuxONE no es una distro:** ejecuta Ubuntu, RHEL o SUSE sobre **s390x (big-endian)**. Algunos paquetes hay que compilarlos o buscar su versión s390x.
+- **Estado real de la VM** (ver `docs/vm-check.md`, F0-BE-01/02): IBM z17, Ubuntu, Python 3.12, **NNPA usable** (zDNN), stack de ML completo compilado desde fuente, solo los puertos 22, 443 y 8443 abiertos. Ojo: los puertos que publica Docker se saltan iptables, así que en `docker compose` solo se publica `8443`.
 - Comprobaciones al llegar a la VM: `uname -m` (debe decir `s390x`), `lscpu` (buscar el flag `nnpa`), `python3 --version`, `docker version`, y que instalen `numpy pandas scikit-learn lightgbm shap fastapi uvicorn`.
 - **Big-endian:** al leer binarios (`.pkl` de WESAD, `.npy`, modelos) fija el orden de bytes y **compara una predicción en el portátil y en la VM** con la misma entrada. Formatos portables: CSV, Parquet, JSON, modelos LightGBM en texto, `joblib` generado en la misma arquitectura. (Lección del Team Oasis: PyTorch daba resultados raros por big-endian hasta usar versiones compatibles.)
-- **Docker** viene preinstalado en L1CC. Todos los servicios en contenedores, orquestados con `docker compose`. Imágenes base con variante `linux/s390x` (p. ej. `python:3.11-slim`, `postgres:16` oficiales son multi-arch; verificar).
+- **Docker** no venía preinstalado en nuestra VM: está instalado desde los repos de Ubuntu (`docker.io` + `docker-compose-v2`, ver `docs/vm-check.md`). Todos los servicios en contenedores, orquestados con `docker compose`. Imágenes base con variante `linux/s390x` (p. ej. `python:3.11-slim`, `postgres:16` oficiales son multi-arch; verificar).
 - Consejo oficial de IBM: **empezar simple** (app Python funcionando en la VM) e ir añadiendo datos, BD, API e IA.
 - Punto fuerte de IBM Z: **inferencia junto al dato** (Telum II con acelerador de IA integrado). Se puede entrenar fuera y desplegar en Z para inferencia.
 - **Multi-modelo:** al menos tres modelos (detector, clasificador, explicación).
